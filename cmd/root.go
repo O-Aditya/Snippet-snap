@@ -21,7 +21,6 @@ var (
 	database *sql.DB
 )
 
-// rootCmd is the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:   "snap",
 	Short: "Snippet-Snap — manage your code snippets from the terminal",
@@ -61,7 +60,7 @@ fuzzy matching, and 'snap copy' to paste with variable injection.`,
 	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
+// Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
@@ -98,38 +97,38 @@ func printStyledHelp() {
 	cyan := lipgloss.NewStyle().Foreground(tui.ColorCyan)
 	cyanBold := lipgloss.NewStyle().Foreground(tui.ColorCyan).Bold(true)
 	muted := lipgloss.NewStyle().Foreground(tui.ColorMuted)
-	dim := lipgloss.NewStyle().Foreground(tui.ColorDimC)
-	text := lipgloss.NewStyle().Foreground(tui.ColorText)
+	dim := lipgloss.NewStyle().Foreground(tui.ColorDim)
+	bright := lipgloss.NewStyle().Foreground(tui.ColorBright)
 	amber := lipgloss.NewStyle().Foreground(tui.ColorAmber)
 	green := lipgloss.NewStyle().Foreground(tui.ColorGreen)
 
 	var b strings.Builder
 
-	// 1. IDENTITY BOX
-	logo := cyanBold.Render("◈ SNIPPET-SNAP")
-	version := lipgloss.NewStyle().
+	// 1. ASCII BANNER
+	banner := `   ___  _  _ _  _ ___ ___  ___  ___  ___
+  / __|| \| | || | _ \ _ \/ _ \|  _||__ \
+  \__ \| .` + "`" + ` | || |  _/  _/  __/|  _|  /_/
+  |___/|_|\_|\__/|_|  |_|  \___||___|  (_)`
+
+	b.WriteString(cyan.Render(banner) + "\n\n")
+
+	// Version pill + tagline
+	versionPill := lipgloss.NewStyle().
 		Background(tui.ColorBG3).
 		Foreground(tui.ColorMuted).
 		Padding(0, 1).
 		Render("v1.0.0")
-	titleRow := logo + "  " + version
-	tagline := muted.Render("Fast CLI tool for saving, searching, and reusing code snippets")
+	tagline := muted.Render("Fast CLI for saving, searching, and reusing code snippets")
+	b.WriteString("  " + versionPill + "  " + tagline + "\n\n")
 
-	identityBox := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(tui.ColorCyan).
-		Width(56).
-		Padding(0, 1).
-		Render(titleRow + "\n" + tagline)
-	b.WriteString(identityBox + "\n\n")
-
-	// 2. COMMANDS section
+	// Section header helper
 	sectionHdr := func(name string) string {
 		hdr := dim.Bold(true).Render("  " + strings.ToUpper(name))
-		line := dim.Render(strings.Repeat("─", 56-len(name)-4))
-		return hdr + " " + line
+		line := lipgloss.NewStyle().Foreground(tui.ColorBorder2).Render(strings.Repeat("─", 52))
+		return hdr + "\n  " + line
 	}
 
+	// 2. COMMANDS
 	b.WriteString(sectionHdr("COMMANDS") + "\n")
 
 	type cmdEntry struct {
@@ -139,15 +138,15 @@ func printStyledHelp() {
 	}
 	commands := []cmdEntry{
 		{"add", "Save a new snippet interactively", false},
-		{"list", "Print all saved snippets as cards or table", false},
+		{"list", "Print all saved snippets as a flat table", false},
 		{"find", "Launch fuzzy-search TUI", true},
-		{"copy", "Copy snippet to clipboard — fills {{VARS}} interactively", false},
+		{"copy", "Copy snippet to clipboard — fills {{VARS}}", false},
 		{"edit", "Open snippet in $EDITOR", false},
 		{"rm", "Remove a snippet by ID", false},
 	}
 
 	for _, c := range commands {
-		name := cyan.Bold(true).Width(10).PaddingLeft(4).Render(c.name)
+		name := cyanBold.Width(10).PaddingLeft(4).Render(c.name)
 		desc := muted.Render(c.desc)
 		line := name + desc
 		if c.star {
@@ -157,7 +156,7 @@ func printStyledHelp() {
 	}
 	b.WriteString("\n")
 
-	// 3. FLAGS section
+	// 3. FLAGS
 	b.WriteString(sectionHdr("FLAGS") + "\n")
 
 	type flagEntry struct {
@@ -166,31 +165,23 @@ func printStyledHelp() {
 		desc string
 	}
 	flags := []flagEntry{
-		{"--db", "string", "Path to the SQLite database file"},
-		{"--config", "string", "Config file (default ~/.config/snippet-snap)"},
-		{"-h, --help", "", "Show this help message"},
+		{"--db", "string", "Path to SQLite database file"},
+		{"--config", "string", "Config file (~/.config/snippet-snap)"},
+		{"-h", "bool", "Show this help"},
 	}
 
 	for _, f := range flags {
-		flag := text.Width(16).PaddingLeft(4).Render(f.flag)
+		flag := bright.Width(18).PaddingLeft(4).Render(f.flag)
 		typ := dim.Width(8).Render(f.typ)
 		desc := muted.Render(f.desc)
 		b.WriteString(flag + typ + desc + "\n")
 	}
 	b.WriteString("\n")
 
-	// 4. EXAMPLES section
+	// 4. EXAMPLES
 	b.WriteString(sectionHdr("EXAMPLES") + "\n")
 
-	type exLine struct {
-		parts []struct {
-			text  string
-			style lipgloss.Style
-		}
-	}
-
 	writeEx := func(segments ...string) {
-		// segments alternate: style-key, text, style-key, text...
 		line := "    " + dim.Render("$ ")
 		for i := 0; i+1 < len(segments); i += 2 {
 			key := segments[i]
@@ -203,7 +194,7 @@ func printStyledHelp() {
 			case "s":
 				line += green.Render(val)
 			case "a":
-				line += text.Render(val)
+				line += bright.Render(val)
 			}
 		}
 		b.WriteString(line + "\n")
@@ -212,25 +203,25 @@ func printStyledHelp() {
 	writeEx("c", "snap add", "f", " --name ", "s", "docker-clean", "f", " --lang ", "a", "bash", "f", " --tags ", "s", `"docker,ops"`)
 	writeEx("c", "snap find")
 	writeEx("c", "snap copy", "a", " 3")
-	writeEx("c", "snap list", "f", " --short")
+	writeEx("c", "snap list", "f", " --lang ", "a", "bash")
 	writeEx("c", "snap rm", "a", " 5")
 	b.WriteString("\n")
 
-	// 5. TIPS section
+	// 5. TIPS
 	b.WriteString(sectionHdr("TIPS") + "\n")
 
 	tips := []struct {
 		icon string
 		text string
 	}{
-		{"★", cyanBold.Render("snap find") + muted.Render(" is the fastest way to browse and copy snippets")},
-		{"◈", muted.Render("Use ") + cyanBold.Render("{{VAR}}") + muted.Render(" placeholders — ") + cyanBold.Render("snap copy") + muted.Render(" prompts you to fill them")},
-		{"◈", muted.Render("Run ") + cyanBold.Render("snap [command] --help") + muted.Render(" for flags on any command")},
+		{"★", cyanBold.Render("snap find") + muted.Render("  is the fastest way — no ID memorization needed")},
+		{"◈", muted.Render("Use ") + cyanBold.Render("{{VAR}}") + muted.Render(" in content, ") + cyanBold.Render("snap copy") + muted.Render(" will prompt for each value")},
+		{"◈", cyanBold.Render("snap [command] --help") + muted.Render("  for per-command flag details")},
 	}
 
 	for _, t := range tips {
-		icon := amber.Render(t.icon)
-		b.WriteString("    " + icon + "  " + t.text + "\n")
+		icon := amber.Render(t.icon + "  ")
+		b.WriteString("    " + icon + t.text + "\n")
 	}
 	b.WriteString("\n")
 

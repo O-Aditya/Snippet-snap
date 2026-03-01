@@ -9,29 +9,31 @@ import (
 )
 
 // ──────────────────────────────────────────────────
-// Core palette — GitHub Dark / "Terminal Native Noir"
+// Core palette — Clean Terminal Noir
 // ──────────────────────────────────────────────────
 
 var (
 	ColorBG      = lipgloss.Color("#0D1117")
 	ColorBG2     = lipgloss.Color("#161B22")
 	ColorBG3     = lipgloss.Color("#1C2333")
-	ColorBG4     = lipgloss.Color("#0F1419")
-	ColorBorder  = lipgloss.Color("#30363D")
-	ColorDimC    = lipgloss.Color("#484F58")
-	ColorMuted   = lipgloss.Color("#8B949E")
-	ColorText    = lipgloss.Color("#E6EDF3")
+	ColorBG4     = lipgloss.Color("#0A0E13")
+	ColorBorder  = lipgloss.Color("#21262D")
+	ColorBorder2 = lipgloss.Color("#30363D")
+	ColorDim     = lipgloss.Color("#484F58")
+	ColorMuted   = lipgloss.Color("#7D8590")
+	ColorText    = lipgloss.Color("#CDD9E5")
+	ColorBright  = lipgloss.Color("#E6EDF3")
 	ColorCyan    = lipgloss.Color("#39D0D8")
-	ColorCyanDim = lipgloss.Color("#1A4A4F")
+	ColorCyanDim = lipgloss.Color("#163940")
 	ColorGreen   = lipgloss.Color("#3FB950")
-	ColorGreenDm = lipgloss.Color("#122519")
+	ColorGreenDm = lipgloss.Color("#0D2218")
 	ColorRed     = lipgloss.Color("#F85149")
-	ColorRedDim  = lipgloss.Color("#2D0F0E")
-	ColorAmber   = lipgloss.Color("#D29922")
-	ColorAmberDm = lipgloss.Color("#2D2008")
-	ColorPurple  = lipgloss.Color("#BC8CFF")
+	ColorRedDim  = lipgloss.Color("#2A0F0E")
+	ColorAmber   = lipgloss.Color("#CBA135")
+	ColorAmberDm = lipgloss.Color("#261D08")
+	ColorPurple  = lipgloss.Color("#B48EFF")
 	ColorBlue    = lipgloss.Color("#58A6FF")
-	ColorBlueDim = lipgloss.Color("#0D2545")
+	ColorBlueDim = lipgloss.Color("#091D36")
 )
 
 // ──────────────────────────────────────────────────
@@ -39,58 +41,42 @@ var (
 // ──────────────────────────────────────────────────
 
 var (
-	// WordmarkStyle — top bar brand. SetString bakes in the text.
-	WordmarkStyle = lipgloss.NewStyle().
-			Background(ColorCyan).
-			Foreground(ColorBG).
-			Bold(true).
-			Padding(0, 2)
-
-	// SelectedItemStyle — highlighted list row.
 	SelectedItemStyle = lipgloss.NewStyle().
 				Background(ColorBG3).
 				Foreground(ColorCyan).
 				Bold(true)
 
-	// NormalItemStyle — default list row.
 	NormalItemStyle = lipgloss.NewStyle().
-			Foreground(ColorText)
+			Foreground(ColorBright)
 
-	// PreviewHeaderStyle — title bar above preview content.
 	PreviewHeaderStyle = lipgloss.NewStyle().
 				Background(ColorBG2).
-				Foreground(ColorText).
+				Foreground(ColorBright).
 				Bold(true).
-				Padding(0, 1).
+				Padding(0, 2).
 				Border(lipgloss.NormalBorder(), false, false, true, false).
 				BorderForeground(ColorBorder)
 
-	// StatusBarStyle — full-width footer.
 	StatusBarStyle = lipgloss.NewStyle().
 			Background(ColorBG2).
 			Foreground(ColorMuted).
-			Padding(0, 1)
+			Padding(0, 2)
 
-	// KeyBadgeStyle — keyboard shortcut badges in the status bar.
 	KeyBadgeStyle = lipgloss.NewStyle().
 			Background(ColorBG3).
 			Foreground(ColorText).
 			Bold(true).
 			Padding(0, 1)
 
-	// DividerStyle — right-side vertical line between panes.
 	DividerStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder(), false, true, false, false).
 			BorderForeground(ColorBorder)
 
-	// DimStyle — muted secondary text.
 	DimStyle = lipgloss.NewStyle().
 			Foreground(ColorMuted)
 
-	// StyleBold — generic bold.
 	StyleBold = lipgloss.NewStyle().Bold(true)
 
-	// SearchPromptStyle — search prompt icon color.
 	SearchPromptStyle = lipgloss.NewStyle().
 				Foreground(ColorCyan).
 				Bold(true)
@@ -106,21 +92,21 @@ type langColor struct {
 }
 
 var langColors = map[string]langColor{
-	"bash":       {lipgloss.Color("#122519"), lipgloss.Color("#3FB950")},
-	"sh":         {lipgloss.Color("#122519"), lipgloss.Color("#3FB950")},
-	"zsh":        {lipgloss.Color("#122519"), lipgloss.Color("#3FB950")},
-	"python":     {lipgloss.Color("#1A1A40"), lipgloss.Color("#7C8CF8")},
-	"py":         {lipgloss.Color("#1A1A40"), lipgloss.Color("#7C8CF8")},
-	"go":         {lipgloss.Color("#002B3D"), lipgloss.Color("#00ACD7")},
-	"golang":     {lipgloss.Color("#002B3D"), lipgloss.Color("#00ACD7")},
-	"sql":        {lipgloss.Color("#2D1B00"), lipgloss.Color("#D29922")},
-	"postgres":   {lipgloss.Color("#2D1B00"), lipgloss.Color("#D29922")},
-	"yaml":       {lipgloss.Color("#1D1030"), lipgloss.Color("#BC8CFF")},
-	"toml":       {lipgloss.Color("#1D1030"), lipgloss.Color("#BC8CFF")},
-	"js":         {lipgloss.Color("#2D2800"), lipgloss.Color("#F7DF1E")},
-	"ts":         {lipgloss.Color("#2D2800"), lipgloss.Color("#F7DF1E")},
-	"javascript": {lipgloss.Color("#2D2800"), lipgloss.Color("#F7DF1E")},
-	"typescript": {lipgloss.Color("#2D2800"), lipgloss.Color("#F7DF1E")},
+	"bash":       {lipgloss.Color("#0D2218"), lipgloss.Color("#3FB950")},
+	"sh":         {lipgloss.Color("#0D2218"), lipgloss.Color("#3FB950")},
+	"zsh":        {lipgloss.Color("#0D2218"), lipgloss.Color("#3FB950")},
+	"python":     {lipgloss.Color("#161630"), lipgloss.Color("#7C8CF8")},
+	"py":         {lipgloss.Color("#161630"), lipgloss.Color("#7C8CF8")},
+	"go":         {lipgloss.Color("#001E2E"), lipgloss.Color("#00ACD7")},
+	"golang":     {lipgloss.Color("#001E2E"), lipgloss.Color("#00ACD7")},
+	"sql":        {lipgloss.Color("#261D08"), lipgloss.Color("#CBA135")},
+	"postgres":   {lipgloss.Color("#261D08"), lipgloss.Color("#CBA135")},
+	"yaml":       {lipgloss.Color("#1D1030"), lipgloss.Color("#B48EFF")},
+	"toml":       {lipgloss.Color("#1D1030"), lipgloss.Color("#B48EFF")},
+	"js":         {lipgloss.Color("#252200"), lipgloss.Color("#F7DF1E")},
+	"ts":         {lipgloss.Color("#252200"), lipgloss.Color("#F7DF1E")},
+	"javascript": {lipgloss.Color("#252200"), lipgloss.Color("#F7DF1E")},
+	"typescript": {lipgloss.Color("#252200"), lipgloss.Color("#F7DF1E")},
 }
 
 // RenderLangBadge renders a per-language colored badge.
@@ -235,7 +221,7 @@ func RenderConfirmBox(alias string, id int64, lang, tags string) string {
 		Render("✓  Snippet saved")
 
 	keyStyle := lipgloss.NewStyle().Foreground(ColorMuted).Width(8)
-	valStyle := lipgloss.NewStyle().Foreground(ColorText)
+	valStyle := lipgloss.NewStyle().Foreground(ColorBright)
 	cyanVal := lipgloss.NewStyle().Foreground(ColorCyan).Bold(true)
 
 	rows := []string{
@@ -251,14 +237,14 @@ func RenderConfirmBox(alias string, id int64, lang, tags string) string {
 	if tags != "" {
 		rows = append(rows, keyStyle.Render("Tags")+"  "+RenderTagBadges(tags))
 	} else {
-		rows = append(rows, keyStyle.Render("Tags")+"  "+lipgloss.NewStyle().Foreground(ColorDimC).Render("—"))
+		rows = append(rows, keyStyle.Render("Tags")+"  "+lipgloss.NewStyle().Foreground(ColorDim).Render("—"))
 	}
 
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(ColorGreen).
 		Width(44).
-		Padding(0, 1).
+		Padding(1, 1).
 		Render(strings.Join(rows, "\n"))
 
 	return box

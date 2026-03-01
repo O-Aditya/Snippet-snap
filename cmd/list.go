@@ -10,7 +10,6 @@ import (
 	"golang.org/x/term"
 
 	"github.com/O-Aditya/snippet-snap/internal/db"
-	"github.com/O-Aditya/snippet-snap/internal/highlight"
 	"github.com/O-Aditya/snippet-snap/internal/models"
 	"github.com/O-Aditya/snippet-snap/internal/tui"
 	"github.com/spf13/cobra"
@@ -19,11 +18,10 @@ import (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all saved snippets",
-	Long:  `List all snippets with optional language and tag filters. Shows syntax-highlighted content.`,
+	Long:  `List all snippets with optional language and tag filters.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		lang, _ := cmd.Flags().GetString("lang")
 		tag, _ := cmd.Flags().GetString("tag")
-		short, _ := cmd.Flags().GetBool("short")
 
 		snippets, err := db.ListSnippets(getDB(), lang, tag)
 		if err != nil {
@@ -37,11 +35,7 @@ var listCmd = &cobra.Command{
 			return nil
 		}
 
-		if short {
-			return printShortList(snippets, w)
-		}
-
-		return printDetailedList(snippets, w)
+		return printShortList(snippets, w)
 	},
 }
 
@@ -49,7 +43,6 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 	listCmd.Flags().StringP("lang", "l", "", "filter by language")
 	listCmd.Flags().StringP("tag", "t", "", "filter by tag")
-	listCmd.Flags().BoolP("short", "s", false, "show compact table (no content)")
 }
 
 // termWidth returns the current terminal width, defaulting to 100.
@@ -65,12 +58,12 @@ func termWidth() int {
 func printEmptyState(w int) {
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(tui.ColorBorder).
+		BorderForeground(tui.ColorDim).
 		Padding(1, 4).
 		Render("✦  No snippets yet\n\n" +
-			lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("Run ") +
+			lipgloss.NewStyle().Foreground(tui.ColorDim).Render("Run ") +
 			lipgloss.NewStyle().Foreground(tui.ColorCyan).Bold(true).Render("snap add") +
-			lipgloss.NewStyle().Foreground(tui.ColorDimC).Render(" to save your first snippet"))
+			lipgloss.NewStyle().Foreground(tui.ColorDim).Render(" to save your first snippet"))
 	fmt.Println(lipgloss.Place(w, 8, lipgloss.Center, lipgloss.Center, box))
 }
 
@@ -96,6 +89,7 @@ func printHeaderBar(count int, w int) {
 		Background(tui.ColorBG2).
 		Border(lipgloss.NormalBorder(), false, false, true, false).
 		BorderForeground(tui.ColorBorder).
+		Padding(0, 1).
 		Width(w).
 		Render(barInner)
 	fmt.Println(headerBar)
@@ -108,25 +102,28 @@ func printShortList(snippets []models.Snippet, w int) error {
 	colID := 5
 	colAlias := 22
 	colLang := 10
-	colTags := 28
 	colSaved := 10
+	colTags := w - colID - colAlias - colLang - colSaved - 14
+	if colTags < 10 {
+		colTags = 10
+	}
 
 	// Column headers
-	dimHdr := lipgloss.NewStyle().Foreground(tui.ColorDimC)
-	headerRow := "  " +
+	dimHdr := lipgloss.NewStyle().Foreground(tui.ColorDim)
+	headerRow := " " +
 		dimHdr.Width(colID).Align(lipgloss.Right).Render("#") + "  " +
 		dimHdr.Width(colAlias).Render("ALIAS") + "  " +
 		dimHdr.Width(colLang).Render("LANG") + "  " +
 		dimHdr.Width(colTags).Render("TAGS") + "  " +
 		dimHdr.Width(colSaved).Align(lipgloss.Right).Render("SAVED")
-	fmt.Println(headerRow)
-
-	// Separator
-	sepWidth := colID + colAlias + colLang + colTags + colSaved + 12
-	if sepWidth > w {
-		sepWidth = w
-	}
-	fmt.Println("  " + lipgloss.NewStyle().Foreground(tui.ColorDimC).Render(strings.Repeat("─", sepWidth)))
+	colHdrBar := lipgloss.NewStyle().
+		Background(tui.ColorBG2).
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		BorderForeground(tui.ColorBorder).
+		Padding(0, 1).
+		Width(w).
+		Render(headerRow)
+	fmt.Println(colHdrBar)
 
 	// Data rows
 	for idx, s := range snippets {
@@ -137,95 +134,55 @@ func printShortList(snippets []models.Snippet, w int) error {
 			rowBg = lipgloss.NewStyle().Background(tui.ColorBG)
 		}
 
-		id := lipgloss.NewStyle().Foreground(tui.ColorDimC).Width(colID).Align(lipgloss.Right).
+		id := lipgloss.NewStyle().Foreground(tui.ColorDim).Width(colID).Align(lipgloss.Right).
 			Render(strconv.Itoa(int(s.ID)))
 
 		alias := s.Alias
 		if len(alias) > 20 {
 			alias = alias[:19] + "…"
 		}
-		aliasStr := lipgloss.NewStyle().Foreground(tui.ColorText).Bold(true).Width(colAlias).Render(alias)
+		aliasStr := lipgloss.NewStyle().Foreground(tui.ColorBright).Bold(true).Width(colAlias).Render(alias)
 
 		langStr := lipgloss.NewStyle().Width(colLang).Render(tui.RenderLangBadge(s.Language))
 
 		tagsRendered := truncateTags(s.Tags, colTags)
 		tagsStr := lipgloss.NewStyle().Width(colTags).Render(tagsRendered)
 
-		saved := lipgloss.NewStyle().Foreground(tui.ColorDimC).Width(colSaved).Align(lipgloss.Right).
+		saved := lipgloss.NewStyle().Foreground(tui.ColorDim).Width(colSaved).Align(lipgloss.Right).
 			Render(tui.RelativeTime(s.UpdatedAt))
 
 		row := id + "  " + aliasStr + "  " + langStr + "  " + tagsStr + "  " + saved
-		fmt.Println(rowBg.Render("  " + row))
+
+		rowLine := rowBg.
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(tui.ColorBorder).
+			Padding(0, 1).
+			Width(w).
+			Render(" " + row)
+
+		fmt.Println(rowLine)
 	}
 
 	// Footer
-	footer := lipgloss.NewStyle().
-		Background(tui.ColorBG2).
-		Border(lipgloss.NormalBorder(), true, false, false, false).
-		BorderForeground(tui.ColorBorder).
-		Foreground(tui.ColorDimC).
-		Width(w).
-		Padding(0, 1).
-		Render("  Use " +
-			lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap find") +
-			" to search · " +
-			lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap copy <id>") +
-			" to copy · " +
-			lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap add") +
-			" to save")
-	fmt.Println(footer)
-	return nil
-}
-
-func printDetailedList(snippets []models.Snippet, w int) error {
-	printHeaderBar(len(snippets), w)
-	fmt.Println()
-
-	cardW := w - 4
-	if cardW > 100 {
-		cardW = 100
-	}
-
-	cardStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(tui.ColorCyan).
-		Width(cardW).
+	codeStyle := lipgloss.NewStyle().
+		Background(tui.ColorBG3).
+		Foreground(tui.ColorCyan).
 		Padding(0, 1)
 
-	for i, s := range snippets {
-		if i > 0 {
-			fmt.Println()
-		}
+	footerContent := "  " +
+		codeStyle.Render("snap find") + " · " +
+		codeStyle.Render("snap copy <id>") + " · " +
+		codeStyle.Render("snap add")
 
-		// Card header: [ID]  alias  langBadge
-		idStr := lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("[" + strconv.Itoa(int(s.ID)) + "]")
-		aliasStr := lipgloss.NewStyle().Foreground(tui.ColorText).Bold(true).Render(s.Alias)
-		cardHeader := idStr + "  " + aliasStr
-		langBadge := tui.RenderLangBadge(s.Language)
-		if langBadge != "" {
-			cardHeader += "  " + langBadge
-		}
-
-		// Tags row
-		tagsRow := ""
-		if s.Tags != "" {
-			tagsRow = "\n" + lipgloss.NewStyle().Foreground(tui.ColorMuted).Render("tags") + "  " + tui.RenderTagBadges(s.Tags)
-		}
-
-		// Divider
-		divider := lipgloss.NewStyle().Foreground(tui.ColorBorder).Render(strings.Repeat("─", cardW-4))
-
-		// Content: highlighted
-		rendered, err := highlight.Render(s.Content, s.Language)
-		if err != nil {
-			rendered = s.Content
-		}
-		content := lipgloss.NewStyle().Width(cardW - 4).Render(rendered)
-
-		fmt.Println(cardStyle.Render(cardHeader + tagsRow + "\n" + divider + "\n" + content))
-	}
-
-	fmt.Println()
+	footer := lipgloss.NewStyle().
+		Background(tui.ColorBG2).
+		Foreground(tui.ColorDim).
+		Border(lipgloss.NormalBorder(), true, false, false, false).
+		BorderForeground(tui.ColorBorder).
+		Padding(0, 1).
+		Width(w).
+		Render(footerContent)
+	fmt.Println(footer)
 	return nil
 }
 
@@ -245,10 +202,10 @@ func truncateTags(tags string, maxW int) string {
 		}
 		badge := tui.RenderTagBadge(p)
 		bw := lipgloss.Width(badge)
-		if width > 0 && width+bw+1 > maxW-6 {
+		if width > 0 && width+bw+1 > maxW-8 {
 			remaining := len(parts) - shown
 			if remaining > 0 {
-				more := lipgloss.NewStyle().Foreground(tui.ColorDimC).Render(fmt.Sprintf("+%d more", remaining))
+				more := lipgloss.NewStyle().Foreground(tui.ColorDim).Render(fmt.Sprintf("+%d", remaining))
 				result = append(result, more)
 			}
 			break

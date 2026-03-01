@@ -54,9 +54,9 @@ var addCmd = &cobra.Command{
 			// Check for alias collision
 			if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") {
 				tui.PrintError("Alias " +
-					lipgloss.NewStyle().Foreground(tui.ColorText).Bold(true).Render("\""+name+"\"") +
+					lipgloss.NewStyle().Foreground(tui.ColorBright).Bold(true).Render("\""+name+"\"") +
 					" already exists")
-				fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("  Try a different name or use ") +
+				fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDim).Render("  Try a different name or use ") +
 					lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap edit "+name))
 				return nil
 			}
@@ -66,9 +66,10 @@ var addCmd = &cobra.Command{
 
 		// Success — render confirm box
 		fmt.Println(tui.RenderConfirmBox(name, id, lang, tags))
-		fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("  Run ") +
+		fmt.Println()
+		fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDim).Render("  Run ") +
 			lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap copy "+strconv.FormatInt(id, 10)) +
-			lipgloss.NewStyle().Foreground(tui.ColorDimC).Render(" to use it"))
+			lipgloss.NewStyle().Foreground(tui.ColorDim).Render(" to use it"))
 		return nil
 	},
 }
@@ -83,14 +84,12 @@ func init() {
 // getContent reads snippet content. If stdin is piped, it reads directly.
 // Otherwise it opens $EDITOR, falling back to interactive stdin.
 func getContent() (string, error) {
-	// If stdin is piped (not a terminal), read from it directly
 	if stat, _ := os.Stdin.Stat(); stat.Mode()&os.ModeCharDevice == 0 {
 		return readStdin()
 	}
 
 	editor := config.Editor()
 
-	// Try using the editor
 	if editor != "" {
 		tmpFile, err := os.CreateTemp("", "snap-*.txt")
 		if err != nil {
@@ -107,7 +106,7 @@ func getContent() (string, error) {
 
 		if err := editorCmd.Run(); err != nil {
 			tui.PrintWarn("Editor failed, reading from stdin instead.")
-			fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("  Type content then press Ctrl+D (or Ctrl+Z on Windows):"))
+			fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDim).Render("  Type content then press Ctrl+D (or Ctrl+Z on Windows):"))
 			return readStdin()
 		}
 

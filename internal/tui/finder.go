@@ -67,13 +67,13 @@ func (f Finder) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		f.width = msg.Width
 		f.height = msg.Height
-		leftW := msg.Width * 37 / 100
+		leftW := msg.Width * 36 / 100
 		rightW := msg.Width - leftW - 1
-		f.preview.Width = rightW - 4
+		f.preview.Width = rightW - 6
 		if f.preview.Width < 10 {
 			f.preview.Width = 10
 		}
-		f.preview.Height = msg.Height - 8
+		f.preview.Height = msg.Height - 10
 		if f.preview.Height < 3 {
 			f.preview.Height = 3
 		}
@@ -151,7 +151,7 @@ func (f Finder) View() string {
 		return ""
 	}
 
-	leftW := f.width * 37 / 100
+	leftW := f.width * 36 / 100
 	if leftW < 20 {
 		leftW = 20
 	}
@@ -159,7 +159,7 @@ func (f Finder) View() string {
 	if rightW < 20 {
 		rightW = 20
 	}
-	bodyH := f.height - 6
+	bodyH := f.height - 7
 	if bodyH < 3 {
 		bodyH = 3
 	}
@@ -172,10 +172,10 @@ func (f Finder) View() string {
 		Foreground(ColorBG).
 		Bold(true).
 		Padding(0, 2).
-		Render("◈ SNIPPET-SNAP")
+		Render("◈  SNIPPET-SNAP")
 
 	countStr := lipgloss.NewStyle().Foreground(ColorMuted).
-		Render(fmt.Sprintf("%d/%d snippets", len(f.filtered), len(f.allSnippets)))
+		Render(fmt.Sprintf("%d / %d snippets", len(f.filtered), len(f.allSnippets)))
 
 	headerFill := f.width - lipgloss.Width(wordmark) - lipgloss.Width(countStr) - 2
 	if headerFill < 0 {
@@ -188,8 +188,8 @@ func (f Finder) View() string {
 		Render(" " + headerInner + " ")
 	sections = append(sections, header)
 
-	// ─── LINE 2: SEARCH BAR ───────────────────────
-	searchIcon := lipgloss.NewStyle().Foreground(ColorCyan).Render(" ⌕ ")
+	// ─── LINE 2: SEARCH BAR (breathing room) ──────
+	searchIcon := lipgloss.NewStyle().Foreground(ColorCyan).Render("⌕ ")
 
 	searchBoxContent := f.searchInput.View()
 	searchBox := lipgloss.NewStyle().
@@ -204,24 +204,29 @@ func (f Finder) View() string {
 		Background(ColorBG2).
 		Border(lipgloss.NormalBorder(), false, false, true, false).
 		BorderForeground(ColorBorder).
+		Padding(1, 2).
 		Width(f.width).
 		Render(searchInner)
 	sections = append(sections, searchRow)
 
-	// ─── BODY: LEFT PANE (list) + RIGHT PANE (preview) ──
+	// ─── BODY: SIDE BY SIDE ───────────────────────
 
-	// LEFT PANE
+	// LEFT PANE — list
 	var leftLines []string
 	if len(f.filtered) == 0 {
-		emptyMsg := lipgloss.NewStyle().Foreground(ColorDimC).Render("no results")
+		emptyMsg := lipgloss.NewStyle().Foreground(ColorDim).Render("no results")
 		emptyBlock := lipgloss.Place(leftW-1, bodyH, lipgloss.Center, lipgloss.Center, emptyMsg)
 		leftLines = append(leftLines, emptyBlock)
 	} else {
 		start := 0
-		if f.cursor >= bodyH {
-			start = f.cursor - bodyH + 1
+		visibleItems := bodyH / 2 // each item takes ~2 lines with padding
+		if visibleItems < 1 {
+			visibleItems = bodyH
 		}
-		end := start + bodyH
+		if f.cursor >= start+visibleItems {
+			start = f.cursor - visibleItems + 1
+		}
+		end := start + visibleItems
 		if end > len(f.filtered) {
 			end = len(f.filtered)
 		}
@@ -229,7 +234,7 @@ func (f Finder) View() string {
 		for i := start; i < end; i++ {
 			s := f.filtered[i]
 
-			aliasMaxW := leftW - 16
+			aliasMaxW := leftW - 14
 			if aliasMaxW < 8 {
 				aliasMaxW = 8
 			}
@@ -245,72 +250,77 @@ func (f Finder) View() string {
 			}
 
 			if i == f.cursor {
-				leftLines = append(leftLines, SelectedItemStyle.Width(leftW-1).Render("▸ "+line))
+				row := SelectedItemStyle.
+					Width(leftW-1).
+					Padding(0, 2).
+					Render("▸ " + line)
+				leftLines = append(leftLines, row)
 			} else {
-				leftLines = append(leftLines, NormalItemStyle.Width(leftW-1).Render("  "+line))
+				row := NormalItemStyle.
+					Width(leftW-1).
+					Padding(0, 2).
+					Border(lipgloss.NormalBorder(), false, false, true, false).
+					BorderForeground(ColorBorder).
+					Render("  " + line)
+				leftLines = append(leftLines, row)
 			}
-		}
-
-		// Pad to full height
-		for len(leftLines) < bodyH {
-			leftLines = append(leftLines, strings.Repeat(" ", leftW-1))
 		}
 	}
 
-	leftPane := DividerStyle.Width(leftW).Height(bodyH).Render(strings.Join(leftLines, "\n"))
+	leftContent := strings.Join(leftLines, "\n")
+	leftPane := DividerStyle.Width(leftW).Height(bodyH).Render(leftContent)
 
-	// RIGHT PANE
+	// RIGHT PANE — preview
 	var rightParts []string
 
 	if len(f.filtered) > 0 && f.showPreview {
 		selected := f.filtered[f.cursor]
 
 		// Preview header
-		previewIcon := lipgloss.NewStyle().Foreground(ColorCyan).Render("  ◈ ")
-		previewAlias := lipgloss.NewStyle().Foreground(ColorText).Bold(true).Render(selected.Alias)
+		aliasLabel := lipgloss.NewStyle().Foreground(ColorBright).Bold(true).Render("◈  " + selected.Alias)
 		langBadge := RenderLangBadge(selected.Language)
-		previewTitle := previewIcon + previewAlias
-		if langBadge != "" {
-			previewTitle += "  " + langBadge
+		headerLeft := aliasLabel
+		headerRight := langBadge
+		hdrFill := rightW - lipgloss.Width(headerLeft) - lipgloss.Width(headerRight) - 6
+		if hdrFill < 0 {
+			hdrFill = 0
 		}
-		previewHdr := PreviewHeaderStyle.Width(rightW).Render(previewTitle)
+		previewHdr := PreviewHeaderStyle.Width(rightW).
+			Render(headerLeft + strings.Repeat(" ", hdrFill) + headerRight)
 		rightParts = append(rightParts, previewHdr)
 
 		// Tags row
-		extraHeaderLines := 0
+		extraH := 0
 		if selected.Tags != "" {
-			tagsLabel := lipgloss.NewStyle().Foreground(ColorMuted).Render("  tags  ")
+			tagsLabel := lipgloss.NewStyle().Foreground(ColorMuted).Render("tags")
 			tagsRow := lipgloss.NewStyle().
-				Background(ColorBG2).
+				Background(ColorBG).
 				Border(lipgloss.NormalBorder(), false, false, true, false).
 				BorderForeground(ColorBorder).
+				Padding(0, 2).
 				Width(rightW).
-				Render(tagsLabel + RenderTagBadges(selected.Tags))
+				Render(tagsLabel + "  " + RenderTagBadges(selected.Tags))
 			rightParts = append(rightParts, tagsRow)
-			extraHeaderLines = 2
+			extraH = 2
 		}
 
-		// Divider
-		divider := lipgloss.NewStyle().Foreground(ColorDimC).Render(strings.Repeat("─", rightW))
-		rightParts = append(rightParts, divider)
-
 		// Content
-		contentH := bodyH - 3 - extraHeaderLines
+		contentH := bodyH - 2 - extraH
 		if contentH < 1 {
 			contentH = 1
 		}
 		previewContent := lipgloss.NewStyle().
 			Width(rightW).
 			Height(contentH).
-			Padding(0, 1).
+			Padding(1, 2).
 			Render(f.preview.View())
 		rightParts = append(rightParts, previewContent)
 
 	} else if !f.showPreview {
-		msg := lipgloss.NewStyle().Foreground(ColorDimC).Render("preview hidden — press Tab")
+		msg := lipgloss.NewStyle().Foreground(ColorDim).Render("preview hidden — press Tab")
 		rightParts = append(rightParts, lipgloss.Place(rightW, bodyH, lipgloss.Center, lipgloss.Center, msg))
 	} else {
-		noSel := lipgloss.NewStyle().Foreground(ColorDimC).Render("◈\n\nno snippet selected")
+		noSel := lipgloss.NewStyle().Foreground(ColorDim).Render("◈\n\nno snippet selected")
 		rightParts = append(rightParts, lipgloss.Place(rightW, bodyH, lipgloss.Center, lipgloss.Center, noSel))
 	}
 
@@ -318,16 +328,14 @@ func (f Finder) View() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
 	sections = append(sections, body)
 
-	// ─── STATUS BAR ────────────────────────────────
+	// ─── STATUS BAR (4 keys only) ─────────────────
 	hints := []string{
-		KeyBadgeStyle.Render("↑↓") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("nav"),
+		KeyBadgeStyle.Render("↑↓") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("navigate"),
 		KeyBadgeStyle.Render("enter") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("copy"),
-		KeyBadgeStyle.Render("e") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("edit"),
-		KeyBadgeStyle.Render("d") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("delete"),
-		KeyBadgeStyle.Render("tab") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("preview"),
+		KeyBadgeStyle.Render("tab") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("toggle preview"),
 		KeyBadgeStyle.Render("esc") + " " + lipgloss.NewStyle().Foreground(ColorMuted).Render("quit"),
 	}
-	leftStr := strings.Join(hints, "  ")
+	leftStr := strings.Join(hints, "   ")
 
 	var statusRight string
 	if f.statusMsg != "" {
@@ -335,20 +343,19 @@ func (f Finder) View() string {
 			statusRight = lipgloss.NewStyle().Foreground(ColorGreen).Bold(true).Render(f.statusMsg)
 		} else if strings.HasPrefix(f.statusMsg, "✗") {
 			statusRight = lipgloss.NewStyle().Foreground(ColorRed).Bold(true).Render(f.statusMsg)
-		} else {
-			statusRight = lipgloss.NewStyle().Foreground(ColorMuted).Render(f.statusMsg)
 		}
 	}
 
-	statusFill := f.width - lipgloss.Width(leftStr) - lipgloss.Width(statusRight) - 4
+	statusFill := f.width - lipgloss.Width(leftStr) - lipgloss.Width(statusRight) - 6
 	if statusFill < 0 {
 		statusFill = 0
 	}
-	barContent := " " + leftStr + strings.Repeat(" ", statusFill) + statusRight + " "
+	barContent := leftStr + strings.Repeat(" ", statusFill) + statusRight
 	statusBar := lipgloss.NewStyle().
 		Background(ColorBG2).
 		Border(lipgloss.NormalBorder(), true, false, false, false).
 		BorderForeground(ColorBorder).
+		Padding(0, 2).
 		Width(f.width).
 		Render(barContent)
 	sections = append(sections, statusBar)
