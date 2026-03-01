@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+
+project_name: snippet-snap
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: snap
+    main: .
+    binary: snap
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  github:
+    owner: O-Aditya
+    name: Snippet-snap
+  draft: false
+  prerelease: auto
+  name_template: "v{{ .Version }}"
+
+brews:
+  - repository:
+      owner: O-Aditya
+      name: homebrew-tap
+    name: snippet-snap
+    homepage: "https://github.com/O-Aditya/Snippet-snap"
+    description: "Fast CLI tool for saving, searching, and reusing code snippets"
+    install: |
+      bin.install "snap"
+
+scoop:
+  bucket:
+    owner: O-Aditya
+    name: scoop-bucket
+  name: snippet-snap
+  homepage: "https://github.com/O-Aditya/Snippet-snap"
+  description: "Fast CLI tool for saving, searching, and reusing code snippets"

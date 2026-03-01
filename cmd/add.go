@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/O-Aditya/snippet-snap/config"
 	"github.com/O-Aditya/snippet-snap/internal/db"
 	"github.com/O-Aditya/snippet-snap/internal/models"
+	"github.com/O-Aditya/snippet-snap/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -23,12 +27,14 @@ var addCmd = &cobra.Command{
 		tags, _ := cmd.Flags().GetString("tags")
 
 		if name == "" {
-			return fmt.Errorf("--name is required")
+			tui.PrintError("--name is required")
+			return nil
 		}
 
 		content, err := getContent()
 		if err != nil {
-			return fmt.Errorf("get content: %w", err)
+			tui.PrintError(err.Error())
+			return nil
 		}
 
 		snippet := &models.Snippet{
@@ -39,15 +45,30 @@ var addCmd = &cobra.Command{
 		}
 
 		if err := snippet.Validate(); err != nil {
-			return fmt.Errorf("validate: %w", err)
+			tui.PrintError(err.Error())
+			return nil
 		}
 
 		id, err := db.InsertSnippet(getDB(), snippet)
 		if err != nil {
-			return fmt.Errorf("insert: %w", err)
+			// Check for alias collision
+			if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") {
+				tui.PrintError("Alias " +
+					lipgloss.NewStyle().Foreground(tui.ColorText).Bold(true).Render("\""+name+"\"") +
+					" already exists")
+				fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("  Try a different name or use ") +
+					lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap edit "+name))
+				return nil
+			}
+			tui.PrintError(err.Error())
+			return nil
 		}
 
-		fmt.Printf("✓ Snippet saved (id: %d, alias: %s)\n", id, name)
+		// Success — render confirm box
+		fmt.Println(tui.RenderConfirmBox(name, id, lang, tags))
+		fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("  Run ") +
+			lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap copy "+strconv.FormatInt(id, 10)) +
+			lipgloss.NewStyle().Foreground(tui.ColorDimC).Render(" to use it"))
 		return nil
 	},
 }
@@ -85,8 +106,8 @@ func getContent() (string, error) {
 		editorCmd.Stderr = os.Stderr
 
 		if err := editorCmd.Run(); err != nil {
-			// If editor fails, fall through to stdin
-			fmt.Fprintln(os.Stderr, "Editor failed, reading from stdin instead. Type content then press Ctrl+D (or Ctrl+Z on Windows):")
+			tui.PrintWarn("Editor failed, reading from stdin instead.")
+			fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDimC).Render("  Type content then press Ctrl+D (or Ctrl+Z on Windows):"))
 			return readStdin()
 		}
 
@@ -102,7 +123,7 @@ func getContent() (string, error) {
 		return content, nil
 	}
 
-	fmt.Fprintln(os.Stderr, "Enter snippet content (Ctrl+D / Ctrl+Z to finish):")
+	tui.PrintInfo("Enter snippet content (Ctrl+D / Ctrl+Z to finish):")
 	return readStdin()
 }
 
