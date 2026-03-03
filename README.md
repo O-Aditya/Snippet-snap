@@ -3,6 +3,7 @@
 ```
   ◈ SNIPPET-SNAP
 ```
+![alt text](465shots_so.png)
 
 **Fast CLI tool for saving, searching, and reusing code snippets.**
 
