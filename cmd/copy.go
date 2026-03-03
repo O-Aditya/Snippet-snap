@@ -7,6 +7,7 @@ import (
 	"github.com/O-Aditya/snippet-snap/internal/clipboard"
 	"github.com/O-Aditya/snippet-snap/internal/db"
 	"github.com/O-Aditya/snippet-snap/internal/inject"
+	"github.com/O-Aditya/snippet-snap/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -24,26 +25,28 @@ contains {{VAR}} placeholders, you will be prompted for values.`,
 
 		snippet, err := db.GetSnippetByID(getDB(), id)
 		if err != nil {
-			return fmt.Errorf("get snippet: %w", err)
+			return fmt.Errorf("copy: snippet not found: %w", err)
 		}
 
-		// Resolve any {{VAR}} placeholders
-		vars := inject.FindVars(snippet.Content)
-		resolved := snippet.Content
-		if len(vars) > 0 {
-			fmt.Println("This snippet has placeholders. Enter values:")
-			var err error
-			resolved, err = inject.ResolveVars(snippet.Content)
-			if err != nil {
-				return fmt.Errorf("resolve vars: %w", err)
-			}
+		// ResolveVars handles both cases:
+		// — no vars: returns content unchanged immediately
+		// — has vars: prompts user on stderr, returns resolved
+		resolved, err := inject.ResolveVars(snippet.Content)
+		if err != nil {
+			tui.PrintInfo("Aborted.")
+			return nil
 		}
 
 		if err := clipboard.Copy(resolved); err != nil {
-			return fmt.Errorf("copy: %w", err)
+			return fmt.Errorf("copy: clipboard error: %w", err)
 		}
 
-		fmt.Printf("✓ Copied to clipboard (%s)\n", snippet.Alias)
+		vars := inject.FindVars(snippet.Content)
+		if len(vars) > 0 {
+			tui.PrintSuccess(fmt.Sprintf("Copied %s (%d var(s) resolved)", snippet.Alias, len(vars)))
+		} else {
+			tui.PrintSuccess("Copied " + snippet.Alias)
+		}
 		return nil
 	},
 }
