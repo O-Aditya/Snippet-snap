@@ -20,7 +20,7 @@
 You have dozens of one-liners, boilerplate blocks, and CLI commands scattered across Notion, Slack DMs, and random `.txt` files. **Snippet-Snap** puts them all in one place with:
 
 - **Fuzzy search TUI** — find any snippet in milliseconds without leaving the terminal
-- **Syntax highlighting** — preview code in 100+ languages right in terminal
+- **Syntax highlighting** — preview code in 250+ languages right in terminal (powered by Chroma)
 - **`{{VAR}}` injection** — save templates with placeholders, fill on paste
 - **One-command copy** — straight to clipboard, no mouse needed
 - **SQLite + FTS5** — full-text search over 1000+ snippets in <100ms
@@ -28,25 +28,27 @@ You have dozens of one-liners, boilerplate blocks, and CLI commands scattered ac
 
 ---
 
-## Quick Start
+## Install
 
-### Install from source
+> **Zero dependencies.** Single binary. Installs to PATH automatically.
+
+### One-liner (recommended)
+
+```bash
+# macOS / Linux — auto-detects shell, adds to PATH
+curl -sSL https://raw.githubusercontent.com/O-Aditya/snippet-snap/main/scripts/install.sh | bash
+
+# Windows (PowerShell) — no restart needed
+irm https://raw.githubusercontent.com/O-Aditya/snippet-snap/main/scripts/install.ps1 | iex
+```
+
+### Via Go
 
 ```bash
 go install github.com/O-Aditya/snippet-snap@latest
 ```
 
-### Or download a release
-
-```bash
-# macOS / Linux
-curl -sSL https://raw.githubusercontent.com/O-Aditya/snippet-snap/main/scripts/install.sh | bash
-
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/O-Aditya/snippet-snap/main/scripts/install.ps1 | iex
-```
-
-### Or build from source
+### Build from source
 
 ```bash
 git clone https://github.com/O-Aditya/snippet-snap.git
@@ -86,8 +88,7 @@ snap find
 ### List all snippets
 
 ```bash
-snap list              # detailed card view with syntax highlighting
-snap list --short      # compact table with badges and relative timestamps
+snap list              # flat table with badges and relative timestamps
 snap list --lang bash  # filter by language
 snap list --tag docker # filter by tag
 ```
@@ -118,16 +119,13 @@ snap rm 1 --force  # skip confirmation
 
 ## Design System
 
-Snippet-Snap uses **"Terminal Native Noir"** — a GitHub-dark palette with cyan as the single accent color:
+Snippet-Snap uses **Terminal-Native Noir** — respects your terminal background, adds color only where it earns its place.
 
-| Element | Color | Usage |
-|---|---|---|
-| `#0D1117` | Background | Main terminal background |
-| `#161B22` | Surface | Headers, status bars, sidebars |
-| `#39D0D8` | **Cyan** | The only bright accent — logos, selection, borders |
-| `#3FB950` | Green | Success states, bash/shell badges |
-| `#F85149` | Red | Error states |
-| `#58A6FF` | Blue | Tag badges |
+**The 4 laws:**
+1. **Default background is sacred** — never fills the full terminal width with color
+2. **Borders create structure** — `│` dividers and `─` separators, not colored bars
+3. **Three text brightness levels** — Bright / Normal / Dim, nothing else
+4. **One accent color** — Cyan `#39D0D8`, used sparingly
 
 Language badges are auto-colored per language family (bash=green, python=indigo, go=teal, sql=amber, yaml=purple, js=yellow).
 
