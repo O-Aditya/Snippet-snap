@@ -105,21 +105,30 @@ func (f Finder) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return f, nil
 
 		case key.Matches(msg, f.keys.Enter):
-			if len(f.filtered) > 0 {
-				selected := f.filtered[f.cursor]
-				content := selected.Content
+			if len(f.filtered) == 0 {
+				return f, nil
+			}
+			selected := f.filtered[f.cursor]
 
-				vars := inject.FindVars(content)
-				if len(vars) > 0 {
-					f.statusMsg = fmt.Sprintf("✓ Copied %s (%d vars — use 'snap copy %d' to fill)",
-						selected.Alias, len(vars), selected.ID)
-				} else {
-					f.statusMsg = fmt.Sprintf("✓ Copied %s", selected.Alias)
-				}
+			// ResolveVars handles both cases:
+			// — no vars: returns content unchanged immediately
+			// — has vars: prompts user on stderr, returns resolved
+			resolved, err := inject.ResolveVars(selected.Content)
+			if err != nil {
+				f.statusMsg = "✗ Aborted"
+				return f, nil
+			}
 
-				if err := clipboard.Copy(content); err != nil {
-					f.statusMsg = fmt.Sprintf("✗ Copy failed: %v", err)
-				}
+			if err := clipboard.Copy(resolved); err != nil {
+				f.statusMsg = fmt.Sprintf("✗ Copy failed: %v", err)
+				return f, nil
+			}
+
+			vars := inject.FindVars(selected.Content)
+			if len(vars) > 0 {
+				f.statusMsg = fmt.Sprintf("✓ Copied %s (%d var(s) resolved)", selected.Alias, len(vars))
+			} else {
+				f.statusMsg = "✓ Copied " + selected.Alias
 			}
 			return f, nil
 
