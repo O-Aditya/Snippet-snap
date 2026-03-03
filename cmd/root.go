@@ -90,46 +90,47 @@ func getDB() *sql.DB {
 }
 
 // ──────────────────────────────────────────────────
-// Custom styled help
+// Custom styled help — ASCII banner, no boxes
 // ──────────────────────────────────────────────────
 
 func printStyledHelp() {
-	cyan := lipgloss.NewStyle().Foreground(tui.ColorCyan)
-	cyanBold := lipgloss.NewStyle().Foreground(tui.ColorCyan).Bold(true)
-	muted := lipgloss.NewStyle().Foreground(tui.ColorMuted)
+	accent := lipgloss.NewStyle().Foreground(tui.ColorAccent)
+	accentBold := lipgloss.NewStyle().Foreground(tui.ColorAccent).Bold(true)
+	normal := lipgloss.NewStyle().Foreground(tui.ColorNormal)
 	dim := lipgloss.NewStyle().Foreground(tui.ColorDim)
 	bright := lipgloss.NewStyle().Foreground(tui.ColorBright)
 	amber := lipgloss.NewStyle().Foreground(tui.ColorAmber)
 	green := lipgloss.NewStyle().Foreground(tui.ColorGreen)
+	border := lipgloss.NewStyle().Foreground(tui.ColorBorder)
 
 	var b strings.Builder
 
-	// 1. ASCII BANNER
+	// 1. ASCII BANNER — no background, no border, just cyan art
 	banner := `   ___  _  _ _  _ ___ ___  ___  ___  ___
   / __|| \| | || | _ \ _ \/ _ \|  _||__ \
   \__ \| .` + "`" + ` | || |  _/  _/  __/|  _|  /_/
   |___/|_|\_|\__/|_|  |_|  \___||___|  (_)`
 
-	b.WriteString(cyan.Render(banner) + "\n\n")
+	b.WriteString(accent.Render(banner) + "\n\n")
 
 	// Version pill + tagline
 	versionPill := lipgloss.NewStyle().
-		Background(tui.ColorBG3).
-		Foreground(tui.ColorMuted).
+		Background(tui.BgKeyBadge).
+		Foreground(tui.ColorDim).
 		Padding(0, 1).
 		Render("v1.0.0")
-	tagline := muted.Render("Fast CLI for saving, searching, and reusing code snippets")
+	tagline := dim.Render("Fast CLI for saving, searching, and reusing code snippets")
 	b.WriteString("  " + versionPill + "  " + tagline + "\n\n")
 
-	// Section header helper
+	// Section header helper — dim bold uppercase + border line
 	sectionHdr := func(name string) string {
 		hdr := dim.Bold(true).Render("  " + strings.ToUpper(name))
-		line := lipgloss.NewStyle().Foreground(tui.ColorBorder2).Render(strings.Repeat("─", 52))
+		line := border.Render(strings.Repeat("─", 54))
 		return hdr + "\n  " + line
 	}
 
 	// 2. COMMANDS
-	b.WriteString(sectionHdr("COMMANDS") + "\n")
+	b.WriteString(sectionHdr("COMMANDS") + "\n\n")
 
 	type cmdEntry struct {
 		name string
@@ -146,8 +147,8 @@ func printStyledHelp() {
 	}
 
 	for _, c := range commands {
-		name := cyanBold.Width(10).PaddingLeft(4).Render(c.name)
-		desc := muted.Render(c.desc)
+		name := accentBold.Width(10).PaddingLeft(4).Render(c.name)
+		desc := normal.Render(c.desc)
 		line := name + desc
 		if c.star {
 			line += amber.Render(" ★ recommended")
@@ -157,7 +158,7 @@ func printStyledHelp() {
 	b.WriteString("\n")
 
 	// 3. FLAGS
-	b.WriteString(sectionHdr("FLAGS") + "\n")
+	b.WriteString(sectionHdr("FLAGS") + "\n\n")
 
 	type flagEntry struct {
 		flag string
@@ -173,13 +174,13 @@ func printStyledHelp() {
 	for _, f := range flags {
 		flag := bright.Width(18).PaddingLeft(4).Render(f.flag)
 		typ := dim.Width(8).Render(f.typ)
-		desc := muted.Render(f.desc)
+		desc := normal.Render(f.desc)
 		b.WriteString(flag + typ + desc + "\n")
 	}
 	b.WriteString("\n")
 
 	// 4. EXAMPLES
-	b.WriteString(sectionHdr("EXAMPLES") + "\n")
+	b.WriteString(sectionHdr("EXAMPLES") + "\n\n")
 
 	writeEx := func(segments ...string) {
 		line := "    " + dim.Render("$ ")
@@ -188,7 +189,7 @@ func printStyledHelp() {
 			val := segments[i+1]
 			switch key {
 			case "c":
-				line += cyan.Render(val)
+				line += accent.Render(val)
 			case "f":
 				line += amber.Render(val)
 			case "s":
@@ -208,15 +209,15 @@ func printStyledHelp() {
 	b.WriteString("\n")
 
 	// 5. TIPS
-	b.WriteString(sectionHdr("TIPS") + "\n")
+	b.WriteString(sectionHdr("TIPS") + "\n\n")
 
 	tips := []struct {
 		icon string
 		text string
 	}{
-		{"★", cyanBold.Render("snap find") + muted.Render("  is the fastest way — no ID memorization needed")},
-		{"◈", muted.Render("Use ") + cyanBold.Render("{{VAR}}") + muted.Render(" in content, ") + cyanBold.Render("snap copy") + muted.Render(" will prompt for each value")},
-		{"◈", cyanBold.Render("snap [command] --help") + muted.Render("  for per-command flag details")},
+		{"★", accentBold.Render("snap find") + normal.Render("  is the fastest way — no ID memorization needed")},
+		{"◈", normal.Render("Use ") + accentBold.Render("{{VAR}}") + normal.Render(" in content, ") + accentBold.Render("snap copy") + normal.Render(" will prompt for each value")},
+		{"◈", accentBold.Render("snap [command] --help") + normal.Render("  for per-command flag details")},
 	}
 
 	for _, t := range tips {

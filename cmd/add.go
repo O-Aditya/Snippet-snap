@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
-
 	"github.com/O-Aditya/snippet-snap/config"
 	"github.com/O-Aditya/snippet-snap/internal/db"
 	"github.com/O-Aditya/snippet-snap/internal/models"
@@ -51,25 +49,24 @@ var addCmd = &cobra.Command{
 
 		id, err := db.InsertSnippet(getDB(), snippet)
 		if err != nil {
-			// Check for alias collision
 			if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") {
 				tui.PrintError("Alias " +
-					lipgloss.NewStyle().Foreground(tui.ColorBright).Bold(true).Render("\""+name+"\"") +
+					tui.BrightStyle.Bold(true).Render("\""+name+"\"") +
 					" already exists")
-				fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDim).Render("  Try a different name or use ") +
-					lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap edit "+name))
+				fmt.Println(tui.DimStyle.Render("  Try a different name or use ") +
+					tui.AccentStyle.Render("snap edit "+name))
 				return nil
 			}
 			tui.PrintError(err.Error())
 			return nil
 		}
 
-		// Success — render confirm box
+		// Success — the ONE justified bordered element
 		fmt.Println(tui.RenderConfirmBox(name, id, lang, tags))
 		fmt.Println()
-		fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDim).Render("  Run ") +
-			lipgloss.NewStyle().Foreground(tui.ColorCyan).Render("snap copy "+strconv.FormatInt(id, 10)) +
-			lipgloss.NewStyle().Foreground(tui.ColorDim).Render(" to use it"))
+		fmt.Println(tui.DimStyle.Render("  Run ") +
+			tui.AccentStyle.Render("snap copy "+strconv.FormatInt(id, 10)) +
+			tui.DimStyle.Render(" to use it"))
 		return nil
 	},
 }
@@ -81,8 +78,6 @@ func init() {
 	addCmd.Flags().StringP("tags", "t", "", "comma-separated tags")
 }
 
-// getContent reads snippet content. If stdin is piped, it reads directly.
-// Otherwise it opens $EDITOR, falling back to interactive stdin.
 func getContent() (string, error) {
 	if stat, _ := os.Stdin.Stat(); stat.Mode()&os.ModeCharDevice == 0 {
 		return readStdin()
@@ -106,7 +101,7 @@ func getContent() (string, error) {
 
 		if err := editorCmd.Run(); err != nil {
 			tui.PrintWarn("Editor failed, reading from stdin instead.")
-			fmt.Println(lipgloss.NewStyle().Foreground(tui.ColorDim).Render("  Type content then press Ctrl+D (or Ctrl+Z on Windows):"))
+			fmt.Println(tui.DimStyle.Render("  Type content then press Ctrl+D (or Ctrl+Z on Windows):"))
 			return readStdin()
 		}
 

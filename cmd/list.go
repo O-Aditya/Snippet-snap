@@ -35,7 +35,7 @@ var listCmd = &cobra.Command{
 			return nil
 		}
 
-		return printShortList(snippets, w)
+		return printFlatTable(snippets, w)
 	},
 }
 
@@ -54,51 +54,30 @@ func termWidth() int {
 	return w
 }
 
-// printEmptyState shows a centered empty box.
+// printEmptyState — no background box, just centered text.
 func printEmptyState(w int) {
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(tui.ColorDim).
-		Padding(1, 4).
-		Render("✦  No snippets yet\n\n" +
-			lipgloss.NewStyle().Foreground(tui.ColorDim).Render("Run ") +
-			lipgloss.NewStyle().Foreground(tui.ColorCyan).Bold(true).Render("snap add") +
-			lipgloss.NewStyle().Foreground(tui.ColorDim).Render(" to save your first snippet"))
-	fmt.Println(lipgloss.Place(w, 8, lipgloss.Center, lipgloss.Center, box))
+	content := tui.DimStyle.Render("no snippets yet") + "\n" +
+		tui.DimStyle.Render("run ") +
+		lipgloss.NewStyle().Foreground(tui.ColorAccent).Bold(true).Render("snap add") +
+		tui.DimStyle.Render(" to save your first one")
+	fmt.Println(lipgloss.Place(w, 6, lipgloss.Center, lipgloss.Center, content))
 }
 
-// printHeaderBar renders the top brand bar.
-func printHeaderBar(count int, w int) {
-	snapLogo := lipgloss.NewStyle().
-		Background(tui.ColorCyan).
-		Foreground(tui.ColorBG).
-		Bold(true).
-		Padding(0, 1).
-		Render("◈ snap")
-
-	leftStr := snapLogo + "  " + lipgloss.NewStyle().Foreground(tui.ColorMuted).Render("All Snippets")
-	rightStr := lipgloss.NewStyle().Foreground(tui.ColorCyan).Render(strconv.Itoa(count)) +
-		lipgloss.NewStyle().Foreground(tui.ColorMuted).Render(" total")
-
-	fill := w - lipgloss.Width(leftStr) - lipgloss.Width(rightStr) - 4
-	if fill < 0 {
-		fill = 0
+func printFlatTable(snippets []models.Snippet, w int) error {
+	// ── HEADER — no background on line, only wordmark pill has bg ──
+	wordmark := tui.RenderWordmark()
+	subtitle := tui.DimStyle.Render("All Snippets")
+	rightStr := lipgloss.NewStyle().Foreground(tui.ColorAccent).Render(strconv.Itoa(len(snippets))) +
+		tui.DimStyle.Render(" total")
+	headerFill := w - lipgloss.Width(wordmark) - lipgloss.Width(subtitle) - lipgloss.Width(rightStr) - 6
+	if headerFill < 0 {
+		headerFill = 0
 	}
-	barInner := " " + leftStr + strings.Repeat(" ", fill) + rightStr + " "
-	headerBar := lipgloss.NewStyle().
-		Background(tui.ColorBG2).
-		Border(lipgloss.NormalBorder(), false, false, true, false).
-		BorderForeground(tui.ColorBorder).
-		Padding(0, 1).
-		Width(w).
-		Render(barInner)
-	fmt.Println(headerBar)
-}
+	headerLine := wordmark + "  " + subtitle + strings.Repeat(" ", headerFill) + rightStr
+	fmt.Println(headerLine)
+	fmt.Println(tui.BorderStyle.Render(strings.Repeat("─", w)))
 
-func printShortList(snippets []models.Snippet, w int) error {
-	printHeaderBar(len(snippets), w)
-
-	// Column widths
+	// ── COLUMN HEADERS — no background ──
 	colID := 5
 	colAlias := 22
 	colLang := 10
@@ -108,77 +87,47 @@ func printShortList(snippets []models.Snippet, w int) error {
 		colTags = 10
 	}
 
-	// Column headers
-	dimHdr := lipgloss.NewStyle().Foreground(tui.ColorDim)
-	headerRow := " " +
-		dimHdr.Width(colID).Align(lipgloss.Right).Render("#") + "  " +
-		dimHdr.Width(colAlias).Render("ALIAS") + "  " +
-		dimHdr.Width(colLang).Render("LANG") + "  " +
-		dimHdr.Width(colTags).Render("TAGS") + "  " +
-		dimHdr.Width(colSaved).Align(lipgloss.Right).Render("SAVED")
-	colHdrBar := lipgloss.NewStyle().
-		Background(tui.ColorBG2).
-		Border(lipgloss.NormalBorder(), false, false, true, false).
-		BorderForeground(tui.ColorBorder).
-		Padding(0, 1).
-		Width(w).
-		Render(headerRow)
-	fmt.Println(colHdrBar)
+	hdr := " " +
+		tui.DimStyle.Width(colID).Align(lipgloss.Right).Render("#") + "  " +
+		tui.DimStyle.Width(colAlias).Render("ALIAS") + "  " +
+		tui.DimStyle.Width(colLang).Render("LANG") + "  " +
+		tui.DimStyle.Width(colTags).Render("TAGS") + "  " +
+		tui.DimStyle.Width(colSaved).Align(lipgloss.Right).Render("SAVED")
+	fmt.Println(hdr)
+	fmt.Println(tui.BorderStyle.Render(strings.Repeat("─", w)))
 
-	// Data rows
-	for idx, s := range snippets {
-		var rowBg lipgloss.Style
-		if idx%2 == 1 {
-			rowBg = lipgloss.NewStyle().Background(tui.ColorBG4)
-		} else {
-			rowBg = lipgloss.NewStyle().Background(tui.ColorBG)
-		}
-
-		id := lipgloss.NewStyle().Foreground(tui.ColorDim).Width(colID).Align(lipgloss.Right).
+	// ── ROWS — no background, terminal shows through ──
+	for _, s := range snippets {
+		id := tui.DimStyle.Width(colID).Align(lipgloss.Right).
 			Render(strconv.Itoa(int(s.ID)))
 
 		alias := s.Alias
 		if len(alias) > 20 {
 			alias = alias[:19] + "…"
 		}
-		aliasStr := lipgloss.NewStyle().Foreground(tui.ColorBright).Bold(true).Width(colAlias).Render(alias)
+		aliasStr := tui.BrightStyle.Bold(true).Width(colAlias).Render(alias)
 
 		langStr := lipgloss.NewStyle().Width(colLang).Render(tui.RenderLangBadge(s.Language))
 
 		tagsRendered := truncateTags(s.Tags, colTags)
 		tagsStr := lipgloss.NewStyle().Width(colTags).Render(tagsRendered)
 
-		saved := lipgloss.NewStyle().Foreground(tui.ColorDim).Width(colSaved).Align(lipgloss.Right).
+		saved := tui.DimStyle.Width(colSaved).Align(lipgloss.Right).
 			Render(tui.RelativeTime(s.UpdatedAt))
 
 		row := id + "  " + aliasStr + "  " + langStr + "  " + tagsStr + "  " + saved
-
-		rowLine := rowBg.
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(tui.ColorBorder).
-			Padding(0, 1).
-			Width(w).
-			Render(" " + row)
-
-		fmt.Println(rowLine)
+		fmt.Println(lipgloss.NewStyle().Padding(0, 1).Render(" " + row))
+		fmt.Println(tui.BorderStyle.Render(strings.Repeat("─", w)))
 	}
 
-	// Footer
-	codeStyle := lipgloss.NewStyle().
-		Background(tui.ColorBG3).
-		Foreground(tui.ColorCyan).
-		Padding(0, 1)
-
+	// ── FOOTER — BgStatusBar anchors the bottom ──
 	footerContent := "  " +
-		codeStyle.Render("snap find") + " · " +
-		codeStyle.Render("snap copy <id>") + " · " +
-		codeStyle.Render("snap add")
-
+		tui.RenderKey("snap find") + " · " +
+		tui.RenderKey("snap copy <id>") + " · " +
+		tui.RenderKey("snap add")
 	footer := lipgloss.NewStyle().
-		Background(tui.ColorBG2).
+		Background(tui.BgStatusBar).
 		Foreground(tui.ColorDim).
-		Border(lipgloss.NormalBorder(), true, false, false, false).
-		BorderForeground(tui.ColorBorder).
 		Padding(0, 1).
 		Width(w).
 		Render(footerContent)
@@ -205,7 +154,7 @@ func truncateTags(tags string, maxW int) string {
 		if width > 0 && width+bw+1 > maxW-8 {
 			remaining := len(parts) - shown
 			if remaining > 0 {
-				more := lipgloss.NewStyle().Foreground(tui.ColorDim).Render(fmt.Sprintf("+%d", remaining))
+				more := tui.DimStyle.Render(fmt.Sprintf("+%d", remaining))
 				result = append(result, more)
 			}
 			break

@@ -9,81 +9,44 @@ import (
 )
 
 // ──────────────────────────────────────────────────
-// Core palette — Clean Terminal Noir
+// Foreground-only palette — no background assumptions
+// The user's terminal background is sacred.
 // ──────────────────────────────────────────────────
 
 var (
-	ColorBG      = lipgloss.Color("#0D1117")
-	ColorBG2     = lipgloss.Color("#161B22")
-	ColorBG3     = lipgloss.Color("#1C2333")
-	ColorBG4     = lipgloss.Color("#0A0E13")
-	ColorBorder  = lipgloss.Color("#21262D")
-	ColorBorder2 = lipgloss.Color("#30363D")
-	ColorDim     = lipgloss.Color("#484F58")
-	ColorMuted   = lipgloss.Color("#7D8590")
-	ColorText    = lipgloss.Color("#CDD9E5")
-	ColorBright  = lipgloss.Color("#E6EDF3")
-	ColorCyan    = lipgloss.Color("#39D0D8")
-	ColorCyanDim = lipgloss.Color("#163940")
-	ColorGreen   = lipgloss.Color("#3FB950")
-	ColorGreenDm = lipgloss.Color("#0D2218")
-	ColorRed     = lipgloss.Color("#F85149")
-	ColorRedDim  = lipgloss.Color("#2A0F0E")
-	ColorAmber   = lipgloss.Color("#CBA135")
-	ColorAmberDm = lipgloss.Color("#261D08")
-	ColorPurple  = lipgloss.Color("#B48EFF")
-	ColorBlue    = lipgloss.Color("#58A6FF")
-	ColorBlueDim = lipgloss.Color("#091D36")
+	// Three levels of text brightness
+	ColorBright = lipgloss.Color("#E6EDF3") // active, selected, important
+	ColorNormal = lipgloss.Color("#9198A1") // body text, readable
+	ColorDim    = lipgloss.Color("#636E7B") // metadata, hints, decorators
+
+	// Structure
+	ColorBorder = lipgloss.Color("#3D444D") // borders and dividers
+
+	// Single accent
+	ColorAccent = lipgloss.Color("#39D0D8") // cyan — THE ONLY bright color
+
+	// Semantic — used in messages only, never decoration
+	ColorGreen  = lipgloss.Color("#3FB950")
+	ColorRed    = lipgloss.Color("#F85149")
+	ColorAmber  = lipgloss.Color("#CBA135")
+	ColorPurple = lipgloss.Color("#B48EFF")
+	ColorBlue   = lipgloss.Color("#58A6FF")
 )
 
-// ──────────────────────────────────────────────────
-// Composite styles
-// ──────────────────────────────────────────────────
-
+// Backgrounds — used sparingly, only where justified.
 var (
-	SelectedItemStyle = lipgloss.NewStyle().
-				Background(ColorBG3).
-				Foreground(ColorCyan).
-				Bold(true)
-
-	NormalItemStyle = lipgloss.NewStyle().
-			Foreground(ColorBright)
-
-	PreviewHeaderStyle = lipgloss.NewStyle().
-				Background(ColorBG2).
-				Foreground(ColorBright).
-				Bold(true).
-				Padding(0, 2).
-				Border(lipgloss.NormalBorder(), false, false, true, false).
-				BorderForeground(ColorBorder)
-
-	StatusBarStyle = lipgloss.NewStyle().
-			Background(ColorBG2).
-			Foreground(ColorMuted).
-			Padding(0, 2)
-
-	KeyBadgeStyle = lipgloss.NewStyle().
-			Background(ColorBG3).
-			Foreground(ColorText).
-			Bold(true).
-			Padding(0, 1)
-
-	DividerStyle = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, true, false, false).
-			BorderForeground(ColorBorder)
-
-	DimStyle = lipgloss.NewStyle().
-			Foreground(ColorMuted)
-
-	StyleBold = lipgloss.NewStyle().Bold(true)
-
-	SearchPromptStyle = lipgloss.NewStyle().
-				Foreground(ColorCyan).
-				Bold(true)
+	BgSelected  = lipgloss.Color("#1F2937") // selected row only
+	BgWordmark  = lipgloss.Color("#39D0D8") // ◈ SNIPPET-SNAP pill only
+	BgStatusBar = lipgloss.Color("#161B22") // bottom status strip
+	BgInput     = lipgloss.Color("#161B22") // search input box
+	BgBadgeCyan = lipgloss.Color("#163940") // focused input border tint
+	BgSuccess   = lipgloss.Color("#0D2218") // confirm box header tint
+	BgError     = lipgloss.Color("#2A0F0E") // error box tint
+	BgKeyBadge  = lipgloss.Color("#1C2128") // keyboard shortcut pill
 )
 
 // ──────────────────────────────────────────────────
-// Language badge renderer
+// Lang badge color pairs — small pills, bg is acceptable
 // ──────────────────────────────────────────────────
 
 type langColor struct {
@@ -109,14 +72,42 @@ var langColors = map[string]langColor{
 	"typescript": {lipgloss.Color("#252200"), lipgloss.Color("#F7DF1E")},
 }
 
-// RenderLangBadge renders a per-language colored badge.
+// ──────────────────────────────────────────────────
+// Composite styles — minimal, foreground-first
+// ──────────────────────────────────────────────────
+
+var (
+	BrightStyle = lipgloss.NewStyle().Foreground(ColorBright)
+	NormalStyle = lipgloss.NewStyle().Foreground(ColorNormal)
+	DimStyle    = lipgloss.NewStyle().Foreground(ColorDim)
+	AccentStyle = lipgloss.NewStyle().Foreground(ColorAccent)
+	BorderStyle = lipgloss.NewStyle().Foreground(ColorBorder)
+
+	SearchPromptStyle = lipgloss.NewStyle().Foreground(ColorAccent).Bold(true)
+)
+
+// ──────────────────────────────────────────────────
+// Component renderers
+// ──────────────────────────────────────────────────
+
+// RenderWordmark renders the ◈  SNIPPET-SNAP pill — the one bg element.
+func RenderWordmark() string {
+	return lipgloss.NewStyle().
+		Background(BgWordmark).
+		Foreground(lipgloss.Color("#0D1117")).
+		Bold(true).
+		Padding(0, 2).
+		Render("◈  SNIPPET-SNAP")
+}
+
+// RenderLangBadge renders a per-language colored pill.
 func RenderLangBadge(lang string) string {
 	if lang == "" {
 		return ""
 	}
 	lc, ok := langColors[strings.ToLower(lang)]
 	if !ok {
-		lc = langColor{bg: ColorBG3, fg: ColorMuted}
+		lc = langColor{bg: lipgloss.Color("#1C2128"), fg: lipgloss.Color("#636E7B")}
 	}
 	return lipgloss.NewStyle().
 		Background(lc.bg).
@@ -126,20 +117,19 @@ func RenderLangBadge(lang string) string {
 		Render(strings.ToUpper(lang))
 }
 
-// ──────────────────────────────────────────────────
-// Tag badge renderers
-// ──────────────────────────────────────────────────
-
-// RenderTagBadge renders a single styled tag badge.
+// RenderTagBadge renders a single tag pill.
 func RenderTagBadge(tag string) string {
+	if tag == "" {
+		return ""
+	}
 	return lipgloss.NewStyle().
-		Background(ColorBlueDim).
+		Background(lipgloss.Color("#091D36")).
 		Foreground(ColorBlue).
 		Padding(0, 1).
 		Render(tag)
 }
 
-// RenderTagBadges splits comma-separated tags and renders each as a badge.
+// RenderTagBadges splits comma-separated tags into pills.
 func RenderTagBadges(tags string) string {
 	if tags == "" {
 		return ""
@@ -153,6 +143,16 @@ func RenderTagBadges(tags string) string {
 		}
 	}
 	return strings.Join(badges, " ")
+}
+
+// RenderKey renders a keyboard shortcut pill.
+func RenderKey(k string) string {
+	return lipgloss.NewStyle().
+		Background(BgKeyBadge).
+		Foreground(ColorBright).
+		Bold(true).
+		Padding(0, 1).
+		Render(k)
 }
 
 // ──────────────────────────────────────────────────
@@ -169,9 +169,9 @@ func PrintError(msg string) {
 	fmt.Println(lipgloss.NewStyle().Foreground(ColorRed).Bold(true).Render("✗ " + msg))
 }
 
-// PrintInfo prints a muted info message.
+// PrintInfo prints a dim info message.
 func PrintInfo(msg string) {
-	fmt.Println(lipgloss.NewStyle().Foreground(ColorMuted).Render("ℹ " + msg))
+	fmt.Println(DimStyle.Render("ℹ " + msg))
 }
 
 // PrintWarn prints an amber warning message.
@@ -207,28 +207,27 @@ func RelativeTime(t time.Time) string {
 }
 
 // ──────────────────────────────────────────────────
-// Confirm box (used by snap add success)
+// Confirm box — the ONE justified bordered element
 // ──────────────────────────────────────────────────
 
 // RenderConfirmBox renders a success card after snippet creation.
 func RenderConfirmBox(alias string, id int64, lang, tags string) string {
 	headerLine := lipgloss.NewStyle().
-		Background(ColorGreenDm).
+		Background(BgSuccess).
 		Foreground(ColorGreen).
 		Bold(true).
 		Padding(0, 1).
 		Width(40).
 		Render("✓  Snippet saved")
 
-	keyStyle := lipgloss.NewStyle().Foreground(ColorMuted).Width(8)
-	valStyle := lipgloss.NewStyle().Foreground(ColorBright)
-	cyanVal := lipgloss.NewStyle().Foreground(ColorCyan).Bold(true)
+	keyStyle := DimStyle.Width(8)
+	valStyle := BrightStyle
 
 	rows := []string{
 		headerLine,
 		"",
 		keyStyle.Render("ID") + "  " + valStyle.Render(fmt.Sprintf("%d", id)),
-		keyStyle.Render("Alias") + "  " + cyanVal.Render(alias),
+		keyStyle.Render("Alias") + "  " + lipgloss.NewStyle().Foreground(ColorAccent).Bold(true).Render(alias),
 	}
 
 	if lang != "" {
@@ -237,7 +236,7 @@ func RenderConfirmBox(alias string, id int64, lang, tags string) string {
 	if tags != "" {
 		rows = append(rows, keyStyle.Render("Tags")+"  "+RenderTagBadges(tags))
 	} else {
-		rows = append(rows, keyStyle.Render("Tags")+"  "+lipgloss.NewStyle().Foreground(ColorDim).Render("—"))
+		rows = append(rows, keyStyle.Render("Tags")+"  "+DimStyle.Render("—"))
 	}
 
 	box := lipgloss.NewStyle().
