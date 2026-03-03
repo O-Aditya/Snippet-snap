@@ -22,11 +22,11 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "snap",
+	Use:   "snip",
 	Short: "Snippet-Snap — manage your code snippets from the terminal",
 	Long: `Snippet-Snap is a fast CLI tool for saving, searching, and copying
-code snippets. Use 'snap add' to save, 'snap find' to search with
-fuzzy matching, and 'snap copy' to paste with variable injection.`,
+code snippets. Use 'snip add' to save, 'snip find' to search with
+fuzzy matching, and 'snip copy' to paste with variable injection.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if cmd.Name() == "help" || cmd.Name() == "completion" {
 			return nil
@@ -201,11 +201,11 @@ func printStyledHelp() {
 		b.WriteString(line + "\n")
 	}
 
-	writeEx("c", "snap add", "f", " --name ", "s", "docker-clean", "f", " --lang ", "a", "bash", "f", " --tags ", "s", `"docker,ops"`)
-	writeEx("c", "snap find")
-	writeEx("c", "snap copy", "a", " 3")
-	writeEx("c", "snap list", "f", " --lang ", "a", "bash")
-	writeEx("c", "snap rm", "a", " 5")
+	writeEx("c", "snip add", "f", " --name ", "s", "docker-clean", "f", " --lang ", "a", "bash", "f", " --tags ", "s", `"docker,ops"`)
+	writeEx("c", "snip find")
+	writeEx("c", "snip copy", "a", " 3")
+	writeEx("c", "snip list", "f", " --lang ", "a", "bash")
+	writeEx("c", "snip rm", "a", " 5")
 	b.WriteString("\n")
 
 	// 5. TIPS
@@ -215,9 +215,9 @@ func printStyledHelp() {
 		icon string
 		text string
 	}{
-		{"★", accentBold.Render("snap find") + normal.Render("  is the fastest way — no ID memorization needed")},
-		{"◈", normal.Render("Use ") + accentBold.Render("{{VAR}}") + normal.Render(" in content, ") + accentBold.Render("snap copy") + normal.Render(" will prompt for each value")},
-		{"◈", accentBold.Render("snap [command] --help") + normal.Render("  for per-command flag details")},
+		{"★", accentBold.Render("snip find") + normal.Render("  is the fastest way — no ID memorization needed")},
+		{"◈", normal.Render("Use ") + accentBold.Render("{{VAR}}") + normal.Render(" in content, ") + accentBold.Render("snip copy") + normal.Render(" will prompt for each value")},
+		{"◈", accentBold.Render("snip [command] --help") + normal.Render("  for per-command flag details")},
 	}
 
 	for _, t := range tips {

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 REPO="O-Aditya/Snippet-snap"
-BINARY="snap"
+BINARY="snip"
 INSTALL_DIR="${HOME}/.local/bin"
 
 # ── Colors ──
@@ -110,7 +110,7 @@ if [ "$PATH_ADDED" = true ]; then
 fi
 
 echo -e "  ${DIM}Get started:${RESET}"
-echo -e "    ${CYAN}snap --help${RESET}"
-echo -e "    ${CYAN}snap add --name my-snippet --lang bash${RESET}"
-echo -e "    ${CYAN}snap find${RESET}"
+echo -e "    ${CYAN}snip --help${RESET}"
+echo -e "    ${CYAN}snip add --name my-snippet --lang bash${RESET}"
+echo -e "    ${CYAN}snip find${RESET}"
 echo ""

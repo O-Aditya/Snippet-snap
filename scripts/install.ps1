@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 
 $repo = "O-Aditya/Snippet-snap"
-$binary = "snap.exe"
+$binary = "snip.exe"
 $installDir = "$env:USERPROFILE\.local\bin"
 
 # Detect arch
@@ -69,7 +69,7 @@ if ($pathAdded) {
 
 Write-Host ""
 Write-Host "  Get started:" -ForegroundColor DarkGray
-Write-Host "    snap --help" -ForegroundColor Cyan
-Write-Host "    snap add --name my-snippet --lang bash" -ForegroundColor Cyan
-Write-Host "    snap find" -ForegroundColor Cyan
+Write-Host "    snip --help" -ForegroundColor Cyan
+Write-Host "    snip add --name my-snippet --lang bash" -ForegroundColor Cyan
+Write-Host "    snip find" -ForegroundColor Cyan
 Write-Host ""

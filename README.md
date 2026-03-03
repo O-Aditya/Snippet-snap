@@ -66,7 +66,7 @@ go install github.com/O-Aditya/snippet-snap@latest
 ```bash
 git clone https://github.com/O-Aditya/snippet-snap.git
 cd snippet-snap
-go build -o snap .
+go build -o snip .
 ```
 
 ---
@@ -77,16 +77,16 @@ go build -o snap .
 
 ```bash
 # Pipe content in
-echo 'docker system prune -af --volumes' | snap add --name docker-clean --lang bash --tags "docker,cleanup"
+echo 'docker system prune -af --volumes' | snip add --name docker-clean --lang bash --tags "docker,cleanup"
 
 # Or open your editor
-snap add --name my-snippet --lang python --tags "util"
+snip add --name my-snippet --lang python --tags "util"
 ```
 
 ### Search with fuzzy TUI
 
 ```bash
-snap find
+snip find
 ```
 
 > **Layout:** side-by-side. Left = snippet list with language badges. Right = syntax-highlighted preview with tag badges. Full keyboard navigation.
@@ -101,19 +101,19 @@ snap find
 ### List all snippets
 
 ```bash
-snap list              # flat table with badges and relative timestamps
-snap list --lang bash  # filter by language
-snap list --tag docker # filter by tag
+snip list              # flat table with badges and relative timestamps
+snip list --lang bash  # filter by language
+snip list --tag docker # filter by tag
 ```
 
 ### Copy with variable injection
 
 ```bash
 # Save a template with placeholders
-echo 'ssh {{USER}}@{{HOST}} -p {{PORT}}' | snap add --name ssh-connect --lang bash --tags "ssh"
+echo 'ssh {{USER}}@{{HOST}} -p {{PORT}}' | snip add --name ssh-connect --lang bash --tags "ssh"
 
 # When you copy, it prompts for each variable
-snap copy 1
+snip copy 1
 #   USER: root
 #   HOST: 192.168.1.100
 #   PORT: 22
@@ -123,9 +123,9 @@ snap copy 1
 ### Edit and delete
 
 ```bash
-snap edit 1        # opens in $EDITOR
-snap rm 1          # prompts for confirmation
-snap rm 1 --force  # skip confirmation
+snip edit 1        # opens in $EDITOR
+snip rm 1          # prompts for confirmation
+snip rm 1 --force  # skip confirmation
 ```
 
 ---
@@ -152,15 +152,15 @@ Config file lives at `~/.config/snippet-snap/config.yaml`:
 # Path to the SQLite database
 db_path: ~/.config/snippet-snap/snippets.db
 
-# Preferred editor for snap add/edit
+# Preferred editor for snip add/edit
 editor: code  # or vim, nano, notepad, etc.
 ```
 
 Override with flags:
 
 ```bash
-snap --db /path/to/custom.db list
-snap --config /path/to/config.yaml add --name test
+snip --db /path/to/custom.db list
+snip --config /path/to/config.yaml add --name test
 ```
 
 ---
@@ -168,7 +168,7 @@ snap --config /path/to/config.yaml add --name test
 ## Architecture
 
 ```
-snap (CLI)
+snip (CLI)
   ├── cmd/           Cobra commands (add, list, rm, edit, find, copy)
   ├── internal/
   │   ├── db/        SQLite + FTS5 (all SQL in queries.go)
@@ -212,7 +212,7 @@ snap (CLI)
 
 ```bash
 # Development
-go build -o snap .
+go build -o snip .
 go test ./... -v
 ```
 

@@ -54,7 +54,7 @@ var addCmd = &cobra.Command{
 					tui.BrightStyle.Bold(true).Render("\""+name+"\"") +
 					" already exists")
 				fmt.Println(tui.DimStyle.Render("  Try a different name or use ") +
-					tui.AccentStyle.Render("snap edit "+name))
+					tui.AccentStyle.Render("snip edit "+name))
 				return nil
 			}
 			tui.PrintError(err.Error())
@@ -65,7 +65,7 @@ var addCmd = &cobra.Command{
 		fmt.Println(tui.RenderConfirmBox(name, id, lang, tags))
 		fmt.Println()
 		fmt.Println(tui.DimStyle.Render("  Run ") +
-			tui.AccentStyle.Render("snap copy "+strconv.FormatInt(id, 10)) +
+			tui.AccentStyle.Render("snip copy "+strconv.FormatInt(id, 10)) +
 			tui.DimStyle.Render(" to use it"))
 		return nil
 	},

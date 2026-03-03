@@ -11,7 +11,7 @@ before:
 builds:
   - id: snap
     main: .
-    binary: snap
+    binary: snip
     env:
       - CGO_ENABLED=0
     goos:
@@ -72,9 +72,9 @@ brews:
       branch: main
       token: "{{ .Env.GORELEASER_TOKEN }}"
     install: |
-      bin.install "snap"
+      bin.install "snip"
     test: |
-      system "#{bin}/snap", "--help"
+      system "#{bin}/snip", "--help"
 
 # ─── Scoop Bucket ───────────────────────────────
 # Users install with: scoop bucket add snippet-snap https://github.com/O-Aditya/scoop-bucket

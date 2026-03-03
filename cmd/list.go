@@ -58,7 +58,7 @@ func termWidth() int {
 func printEmptyState(w int) {
 	content := tui.DimStyle.Render("no snippets yet") + "\n" +
 		tui.DimStyle.Render("run ") +
-		lipgloss.NewStyle().Foreground(tui.ColorAccent).Bold(true).Render("snap add") +
+		lipgloss.NewStyle().Foreground(tui.ColorAccent).Bold(true).Render("snip add") +
 		tui.DimStyle.Render(" to save your first one")
 	fmt.Println(lipgloss.Place(w, 6, lipgloss.Center, lipgloss.Center, content))
 }
@@ -122,9 +122,9 @@ func printFlatTable(snippets []models.Snippet, w int) error {
 
 	// ── FOOTER — BgStatusBar anchors the bottom ──
 	footerContent := "  " +
-		tui.RenderKey("snap find") + " · " +
-		tui.RenderKey("snap copy <id>") + " · " +
-		tui.RenderKey("snap add")
+		tui.RenderKey("snip find") + " · " +
+		tui.RenderKey("snip copy <id>") + " · " +
+		tui.RenderKey("snip add")
 	footer := lipgloss.NewStyle().
 		Background(tui.BgStatusBar).
 		Foreground(tui.ColorDim).
