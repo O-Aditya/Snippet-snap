@@ -32,7 +32,20 @@ You have dozens of one-liners, boilerplate blocks, and CLI commands scattered ac
 
 > **Zero dependencies.** Single binary. Installs to PATH automatically.
 
-### One-liner (recommended)
+### Homebrew (macOS / Linux)
+
+```bash
+brew install O-Aditya/tap/snippet-snap
+```
+
+### Scoop (Windows)
+
+```powershell
+scoop bucket add snippet-snap https://github.com/O-Aditya/scoop-bucket
+scoop install snippet-snap
+```
+
+### One-liner script
 
 ```bash
 # macOS / Linux — auto-detects shell, adds to PATH

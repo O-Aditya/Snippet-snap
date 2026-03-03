@@ -47,6 +47,7 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^ci:"
+      - "^chore:"
 
 release:
   github:
@@ -56,3 +57,36 @@ release:
   prerelease: auto
   name_template: "v{{ .Version }}"
 
+# ─── Homebrew Tap ───────────────────────────────
+# Users install with: brew install O-Aditya/tap/snippet-snap
+brews:
+  - name: snippet-snap
+    homepage: "https://github.com/O-Aditya/Snippet-snap"
+    description: "Fast CLI for saving, searching, and reusing code snippets"
+    license: "MIT"
+    directory: Formula
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    repository:
+      owner: O-Aditya
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.GORELEASER_TOKEN }}"
+    install: |
+      bin.install "snap"
+    test: |
+      system "#{bin}/snap", "--help"
+
+# ─── Scoop Bucket ───────────────────────────────
+# Users install with: scoop bucket add snippet-snap https://github.com/O-Aditya/scoop-bucket
+#                     scoop install snippet-snap
+scoops:
+  - name: snippet-snap
+    homepage: "https://github.com/O-Aditya/Snippet-snap"
+    description: "Fast CLI for saving, searching, and reusing code snippets"
+    license: MIT
+    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+    repository:
+      owner: O-Aditya
+      name: scoop-bucket
+      branch: main
+      token: "{{ .Env.GORELEASER_TOKEN }}"
