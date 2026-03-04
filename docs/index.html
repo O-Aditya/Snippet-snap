@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snippet-Snap — Your command line, with a memory.</title>
+  <meta name="description" content="Fast CLI tool for saving, searching, and reusing code snippets without leaving the terminal. Fuzzy search, syntax highlighting, variable injection.">
+  <meta property="og:title" content="Snippet-Snap — CLI snippet manager">
+  <meta property="og:description" content="Save, search, and copy code snippets from the terminal. Fuzzy search, syntax highlighting, {{VAR}} injection.">
+  <meta property="og:image" content="og-image.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Snippet-Snap — CLI snippet manager">
+  <meta name="twitter:description" content="Save, search, and copy code snippets from the terminal.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ══════════════════════════════════════════
+       DESIGN SYSTEM
+       ══════════════════════════════════════════ */
+    :root {
+      /* Background layers */
+      --bg-base:      #08090C;
+      --bg-surface:   #0E1117;
+      --bg-elevated:  #161B22;
+      --bg-border:    #1E2530;
+
+      /* Text */
+      --text-primary:   #EFF2F7;
+      --text-secondary: #8D96A0;
+      --text-muted:     #4A5260;
+
+      /* Accent */
+      --accent:       #4CAFE8;
+      --accent-dim:   #0D2035;
+
+      /* Syntax */
+      --syn-green:    #6EC17A;
+      --syn-amber:    #C9A84C;
+      --syn-purple:   #A98EE8;
+      --syn-muted:    #4A5260;
+
+      /* Status */
+      --status-ok:    #3FB950;
+      --status-err:   #E5534B;
+
+      /* Typography scale */
+      --text-xs:   11px;
+      --text-sm:   13px;
+      --text-base: 15px;
+      --text-lg:   18px;
+      --text-xl:   24px;
+      --text-2xl:  36px;
+      --text-hero: clamp(52px, 7vw, 80px);
+
+      /* Spacing (8px grid) */
+      --space-1:  8px;
+      --space-2:  16px;
+      --space-3:  24px;
+      --space-4:  32px;
+      --space-5:  48px;
+      --space-6:  64px;
+      --space-7:  96px;
+      --space-8:  128px;
+
+      /* Radius */
+      --radius-sm:  4px;
+      --radius-md:  8px;
+      --radius-lg:  12px;
+    }
+
+    /* ══════════════════════════════════════════
+       RESET + BASE
+       ══════════════════════════════════════════ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: var(--text-base);
+      line-height: 1.65;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Instrument Serif', serif;
+      color: var(--text-primary);
+      line-height: 1.1;
+      font-weight: 400;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    code, .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-3);
+    }
+
+    .text-col {
+      max-width: 640px;
+    }
+
+    /* Fade in animation */
+    .fade-section {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 400ms ease-out, transform 400ms ease-out;
+    }
+    .fade-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ══════════════════════════════════════════
+       NAV
+       ══════════════════════════════════════════ */
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 56px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--bg-border);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-3);
+    }
+
+    .nav-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-logo .logo-mark { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      gap: var(--space-4);
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      transition: color 150ms;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-links a.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+
+    .nav-github {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      transition: color 150ms;
+    }
+    .nav-github:hover { color: var(--text-primary); }
+    .nav-github svg { width: 18px; height: 18px; fill: currentColor; }
+    .star-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      border: 1px solid var(--bg-border);
+      border-radius: var(--radius-sm);
+      padding: 2px 6px;
+    }
+
+    /* ══════════════════════════════════════════
+       HERO
+       ══════════════════════════════════════════ */
+    .hero {
+      padding-top: calc(56px + var(--space-8));
+      padding-bottom: var(--space-8);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-6);
+      align-items: center;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: var(--text-xs);
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-3);
+    }
+
+    .hero-headline {
+      font-size: var(--text-hero);
+      line-height: 1.05;
+      margin-bottom: var(--space-3);
+    }
+
+    .hero-subhead {
+      font-size: var(--text-base);
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin-bottom: var(--space-5);
+      line-height: 1.65;
+    }
+
+    /* Install pill */
+    .install-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      background: var(--bg-elevated);
+      border: 1px solid var(--bg-border);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      margin-bottom: var(--space-3);
+      width: fit-content;
+      max-width: 100%;
+    }
+    .install-pill .dollar {
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-sm);
+      user-select: none;
+    }
+    .install-pill .cmd {
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 150ms;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { color: var(--accent); }
+    .copy-btn:active { transform: scale(0.96); }
+    .copy-btn svg { width: 16px; height: 16px; }
+
+    .hero-links {
+      display: flex;
+      gap: var(--space-3);
+    }
+    .hero-links a {
+      font-size: var(--text-sm);
+      transition: color 150ms;
+    }
+    .hero-links a:first-child {
+      color: var(--text-secondary);
+    }
+    .hero-links a:first-child:hover { color: var(--text-primary); }
+    .hero-links a:last-child {
+      color: var(--text-muted);
+    }
+    .hero-links a:last-child:hover { color: var(--text-secondary); }
+
+    /* ══════════════════════════════════════════
+       TERMINAL WINDOW (shared)
+       ══════════════════════════════════════════ */
+    .terminal {
+      background: var(--bg-surface);
+      border: 1px solid var(--bg-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .terminal-chrome {
+      background: var(--bg-elevated);
+      height: 36px;
+      border-bottom: 1px solid var(--bg-border);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      position: relative;
+    }
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .terminal-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .terminal-dots .d-red { background: #FF5F57; }
+    .terminal-dots .d-yellow { background: #FFBD2E; }
+    .terminal-dots .d-green { background: #28C840; }
+    .terminal-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+
+    .terminal-body {
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      min-height: 120px;
+    }
+
+    /* Terminal cursor */
+    .cursor {
+      display: inline-block;
+      width: 7px;
+      height: 15px;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    /* Hero TUI mock */
+    .tui-mock { display: none; }
+    .tui-mock.show { display: block; margin-top: 12px; }
+
+    .tui-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--bg-border);
+      margin-bottom: 8px;
+    }
+    .tui-header-left { color: var(--accent); font-weight: 600; font-size: 11px; }
+    .tui-header-right { color: var(--text-muted); font-size: 11px; }
+
+    .tui-search {
+      border: 1px solid var(--bg-border);
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .tui-layout {
+      display: grid;
+      grid-template-columns: 40% 1fr;
+      gap: 0;
+      min-height: 120px;
+    }
+    .tui-list {
+      border-right: 1px solid var(--bg-border);
+      padding-right: 8px;
+    }
+    .tui-list-item {
+      padding: 3px 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tui-list-item.selected {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    .tui-list-item .indicator { color: var(--accent); }
+    .tui-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-bash { background: #12261A; color: var(--syn-green); }
+    .badge-python { background: #1A1530; color: var(--syn-purple); }
+    .badge-yaml { background: #201A10; color: var(--syn-amber); }
+
+    .tui-preview {
+      padding-left: 10px;
+      font-size: 10px;
+      line-height: 1.5;
+    }
+    .tui-preview-title {
+      color: var(--text-primary);
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .tui-statusbar {
+      border-top: 1px solid var(--bg-border);
+      padding: 4px 0;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+    .tui-status-ok { color: var(--status-ok); }
+
+    /* ══════════════════════════════════════════
+       PROBLEM → SOLUTION
+       ══════════════════════════════════════════ */
+    .problem-section {
+      padding: var(--space-8) 0;
+    }
+
+    .section-eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: var(--text-xs);
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-2);
+    }
+
+    .section-heading {
+      font-size: var(--text-2xl);
+      margin-bottom: var(--space-5);
+    }
+
+    .pain-points {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+    .pain-point {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-1);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    .pain-point .icon {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--bg-border);
+      margin: var(--space-5) 0;
+    }
+
+    .solution-label {
+      font-family: 'Inter', sans-serif;
+      font-size: var(--text-xs);
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-3);
+    }
+
+    .solutions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-4);
+    }
+    .solution {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-1);
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+    }
+    .solution .icon {
+      color: var(--accent);
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       FEATURES
+       ══════════════════════════════════════════ */
+    .features-section {
+      padding: var(--space-8) 0;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--bg-border);
+      margin-top: var(--space-5);
+    }
+
+    .feature-cell {
+      padding: var(--space-5);
+      border-bottom: 1px solid var(--bg-border);
+    }
+    .feature-cell:nth-child(odd) {
+      border-right: 1px solid var(--bg-border);
+    }
+    .feature-cell:nth-last-child(-n+2) {
+      border-bottom: none;
+    }
+
+    .feature-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    .feature-title {
+      font-size: var(--text-xl);
+      margin-bottom: var(--space-1);
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-3);
+      line-height: 1.65;
+    }
+
+    .mini-terminal {
+      background: var(--bg-surface);
+      border: 1px solid var(--bg-border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    /* ══════════════════════════════════════════
+       INSTALL
+       ══════════════════════════════════════════ */
+    .install-section {
+      padding: var(--space-8) 0;
+      text-align: center;
+    }
+
+    .install-section .section-heading {
+      margin-bottom: var(--space-5);
+    }
+
+    .install-tabs {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+    .install-tab {
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding-bottom: 8px;
+      border-bottom: 2px solid transparent;
+      transition: color 150ms;
+    }
+    .install-tab:hover { color: var(--text-secondary); }
+    .install-tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+
+    .install-panel {
+      display: none;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .install-panel.active { display: block; }
+
+    .install-block {
+      background: var(--bg-elevated);
+      border: 1px solid var(--bg-border);
+      border-radius: var(--radius-md);
+      padding: 18px 24px;
+      text-align: left;
+      position: relative;
+    }
+    .install-block .copy-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+    }
+    .install-block pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-sm);
+      line-height: 1.8;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .install-block .comment {
+      color: var(--syn-muted);
+    }
+
+    .install-footnote {
+      margin-top: var(--space-3);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .install-footnote a {
+      color: var(--accent);
+      transition: color 150ms;
+    }
+    .install-footnote a:hover { color: var(--text-primary); }
+
+    /* ══════════════════════════════════════════
+       COMMANDS
+       ══════════════════════════════════════════ */
+    .commands-section {
+      padding: var(--space-8) 0;
+    }
+
+    .commands-table {
+      width: 100%;
+      max-width: 900px;
+      margin: var(--space-5) auto 0;
+      border-collapse: collapse;
+    }
+    .commands-table thead th {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-align: left;
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--bg-border);
+      font-weight: 500;
+    }
+    .commands-table tbody td {
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--bg-border);
+      vertical-align: top;
+      font-size: 14px;
+    }
+    .commands-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .cmd-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: var(--text-sm);
+      color: var(--accent);
+      white-space: nowrap;
+      padding-right: var(--space-3);
+    }
+    .cmd-desc {
+      color: var(--text-secondary);
+      padding-right: var(--space-3);
+    }
+    .cmd-star { color: var(--accent); }
+    .cmd-example {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ══════════════════════════════════════════
+       FOOTER
+       ══════════════════════════════════════════ */
+    .site-footer {
+      border-top: 1px solid var(--bg-border);
+      padding: var(--space-4) 0;
+    }
+    .footer-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .footer-logo .logo-mark { color: var(--accent); }
+    .footer-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .footer-github {
+      color: var(--text-muted);
+      transition: color 150ms;
+      display: flex;
+    }
+    .footer-github:hover { color: var(--text-primary); }
+    .footer-github svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════ */
+    @media (max-width: 1024px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+      }
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .feature-cell:nth-child(odd) {
+        border-right: none;
+      }
+      .feature-cell {
+        border-bottom: 1px solid var(--bg-border);
+      }
+      .feature-cell:last-child {
+        border-bottom: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --space-8: 80px;
+        --text-2xl: 28px;
+        --text-xl: 20px;
+      }
+
+      .nav-links { display: none; }
+
+      .hero {
+        padding-top: calc(56px + var(--space-6));
+      }
+
+      .hero-headline {
+        font-size: clamp(36px, 8vw, 52px);
+      }
+
+      .hero-terminal {
+        max-height: 280px;
+        overflow: hidden;
+      }
+
+      .pain-points,
+      .solutions {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+      }
+
+      .install-pill {
+        flex-wrap: wrap;
+      }
+
+      .commands-table .cmd-example-col {
+        display: none;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        gap: var(--space-2);
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ═══════════ NAV ═══════════ -->
+  <nav class="site-nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="logo-mark">◈</span> snippet-snap
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features" data-nav="features">Features</a></li>
+        <li><a href="#install" data-nav="install">Install</a></li>
+        <li><a href="#commands" data-nav="commands">Commands</a></li>
+      </ul>
+      <a href="https://github.com/O-Aditya/Snippet-snap" target="_blank" rel="noopener" class="nav-github" aria-label="View on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="star-badge">★ Star</span>
+      </a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ═══════════ HERO ═══════════ -->
+    <section class="hero fade-section" id="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-text">
+            <div class="hero-eyebrow">CLI TOOL FOR DEVELOPERS</div>
+            <h1 class="hero-headline">Your command line,<br>with a memory.</h1>
+            <p class="hero-subhead">Snippet-Snap stores your most-used commands, scripts, and config blocks — searchable and copyable without leaving the terminal.</p>
+
+            <div class="install-pill">
+              <span class="dollar">$</span>
+              <span class="cmd" id="hero-cmd">brew install snippet-snap</span>
+              <button class="copy-btn" aria-label="Copy install command" data-copy="brew install snippet-snap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+
+            <div class="hero-links">
+              <a href="https://github.com/O-Aditya/Snippet-snap" target="_blank" rel="noopener">View on GitHub →</a>
+              <a href="#install">All install methods ↓</a>
+            </div>
+          </div>
+
+          <div class="hero-terminal terminal">
+            <div class="terminal-chrome">
+              <div class="terminal-dots">
+                <span class="d-red"></span>
+                <span class="d-yellow"></span>
+                <span class="d-green"></span>
+              </div>
+              <span class="terminal-title">snip find</span>
+            </div>
+            <div class="terminal-body" id="hero-terminal-body">
+              <div id="typing-line">
+                <span style="color:var(--text-muted)">$ </span><span id="typed-text"></span><span class="cursor" id="type-cursor"></span>
+              </div>
+              <div class="tui-mock" id="tui-mock">
+                <div class="tui-header">
+                  <span class="tui-header-left">◈ SNIPPET-SNAP</span>
+                  <span class="tui-header-right">4 / 12</span>
+                </div>
+                <div class="tui-search">⌕ docker<span class="cursor" style="margin-left:2px"></span></div>
+                <div class="tui-layout">
+                  <div class="tui-list">
+                    <div class="tui-list-item selected">
+                      <span class="indicator">▸</span>
+                      docker-clean
+                      <span class="tui-badge badge-bash">bash</span>
+                    </div>
+                    <div class="tui-list-item">
+                      &nbsp;&nbsp;docker-ps
+                      <span class="tui-badge badge-bash">bash</span>
+                    </div>
+                    <div class="tui-list-item">
+                      &nbsp;&nbsp;docker-compose
+                      <span class="tui-badge badge-yaml">yaml</span>
+                    </div>
+                    <div class="tui-list-item">
+                      &nbsp;&nbsp;docker-debug
+                      <span class="tui-badge badge-python">py</span>
+                    </div>
+                  </div>
+                  <div class="tui-preview">
+                    <div class="tui-preview-title">◈ docker-clean</div>
+                    <div>
+                      <span style="color:var(--syn-muted)"># Remove all containers, images, volumes</span><br>
+                      <span style="color:var(--syn-green)">docker</span> system prune -af --volumes<br>
+                      <span style="color:var(--syn-green)">docker</span> volume rm $(<span style="color:var(--syn-green)">docker</span> volume ls -q)<br>
+                      <span style="color:var(--syn-green)">echo</span> <span style="color:var(--syn-amber)">"✓ clean"</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="tui-statusbar">
+                  <span>↑↓ navigate · enter copy · tab preview · esc quit</span>
+                  <span class="tui-status-ok" id="tui-status-msg"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ PROBLEM → SOLUTION ═══════════ -->
+    <section class="problem-section fade-section" id="problem">
+      <div class="container" style="max-width:800px;">
+        <div class="section-eyebrow">THE PROBLEM</div>
+        <h2 class="section-heading">Every developer has a graveyard of forgotten commands.</h2>
+        <div class="pain-points">
+          <div class="pain-point">
+            <span class="icon">·</span>
+            <span>Googling the same Docker command for the 40th time</span>
+          </div>
+          <div class="pain-point">
+            <span class="icon">·</span>
+            <span>Jumping to browser notes mid-terminal session</span>
+          </div>
+          <div class="pain-point">
+            <span class="icon">·</span>
+            <span>Onboarding teammates with "just look at my .zshrc"</span>
+          </div>
+        </div>
+        <hr class="section-divider">
+        <div class="solution-label">◈ SNIPPET-SNAP FIXES THIS</div>
+        <div class="solutions">
+          <div class="solution">
+            <span class="icon">·</span>
+            <span>Save once. Find in under 100ms with fuzzy search.</span>
+          </div>
+          <div class="solution">
+            <span class="icon">·</span>
+            <span>Stay in the terminal. snip find never breaks your flow.</span>
+          </div>
+          <div class="solution">
+            <span class="icon">·</span>
+            <span>snip export → teammate runs snip import. Done.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ FEATURES ═══════════ -->
+    <section class="features-section fade-section" id="features">
+      <div class="container">
+        <h2 class="section-heading" style="text-align:center;">Everything you need,<br>nothing you don't.</h2>
+        <div class="features-grid">
+          <!-- Feature 01 -->
+          <div class="feature-cell">
+            <div class="feature-num">01</div>
+            <h3 class="feature-title">Find anything in milliseconds.</h3>
+            <p class="feature-desc">An interactive TUI that filters your entire library as you type. No IDs to remember.</p>
+            <div class="mini-terminal">
+              <span style="color:var(--text-muted)">$ </span><span style="color:var(--text-primary)">snip find docker</span><br>
+              <span style="color:var(--accent)">▸ docker-clean</span> <span style="color:var(--syn-green);font-size:10px">BASH</span><br>
+              <span style="color:var(--text-secondary)">&nbsp; docker-ps</span> <span style="color:var(--syn-green);font-size:10px">BASH</span><br>
+              <span style="color:var(--text-secondary)">&nbsp; docker-compose</span> <span style="color:var(--syn-amber);font-size:10px">YAML</span>
+            </div>
+          </div>
+
+          <!-- Feature 02 -->
+          <div class="feature-cell">
+            <div class="feature-num">02</div>
+            <h3 class="feature-title">Snippets that fill themselves.</h3>
+            <p class="feature-desc">Use {{VAR}} placeholders. snip copy prompts for each value before copying — no editing needed.</p>
+            <div class="mini-terminal">
+              <span style="color:var(--text-muted)">$ </span><span style="color:var(--text-primary)">snip copy 3</span><br>
+              <span style="color:var(--syn-amber)">&nbsp; HOST</span> <span style="color:var(--text-muted)">›</span> <span style="color:var(--text-primary)">api.example.com</span><br>
+              <span style="color:var(--syn-amber)">&nbsp; PORT</span> <span style="color:var(--text-muted)">›</span> <span style="color:var(--text-primary)">8080</span><br>
+              <span style="color:var(--status-ok)">✓ Copied (2 vars resolved)</span>
+            </div>
+          </div>
+
+          <!-- Feature 03 -->
+          <div class="feature-cell">
+            <div class="feature-num">03</div>
+            <h3 class="feature-title">Readable at a glance.</h3>
+            <p class="feature-desc">Language-aware highlighting in the preview pane and in snip list. Supports 250+ languages.</p>
+            <div class="mini-terminal">
+              <span style="color:var(--syn-muted)"># deploy.sh</span><br>
+              <span style="color:var(--syn-purple)">if</span> [ <span style="color:var(--syn-amber)">$ENV</span> = <span style="color:var(--syn-green)">"prod"</span> ]; <span style="color:var(--syn-purple)">then</span><br>
+              &nbsp; <span style="color:var(--syn-green)">docker</span> compose up -d<br>
+              <span style="color:var(--syn-purple)">fi</span>
+            </div>
+          </div>
+
+          <!-- Feature 04 -->
+          <div class="feature-cell">
+            <div class="feature-num">04</div>
+            <h3 class="feature-title">macOS. Linux. Windows.</h3>
+            <p class="feature-desc">Single binary. No runtime dependencies. Install via Homebrew, Scoop, or direct download.</p>
+            <div class="mini-terminal">
+              <span style="color:var(--syn-muted)"># macOS / Linux</span><br>
+              <span style="color:var(--accent)">brew install</span> snippet-snap<br><br>
+              <span style="color:var(--syn-muted)"># Windows</span><br>
+              <span style="color:var(--accent)">scoop install</span> snippet-snap
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ INSTALL ═══════════ -->
+    <section class="install-section fade-section" id="install">
+      <div class="container">
+        <h2 class="section-heading">Get started in seconds.</h2>
+
+        <div class="install-tabs">
+          <button class="install-tab active" data-tab="macos">macOS</button>
+          <button class="install-tab" data-tab="linux">Linux</button>
+          <button class="install-tab" data-tab="windows">Windows</button>
+        </div>
+
+        <div class="install-panel active" id="tab-macos">
+          <div class="install-block">
+            <button class="copy-btn" aria-label="Copy macOS install command" data-copy="brew install O-Aditya/tap/snippet-snap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+            <pre>brew install O-Aditya/tap/snippet-snap</pre>
+          </div>
+        </div>
+
+        <div class="install-panel" id="tab-linux">
+          <div class="install-block">
+            <button class="copy-btn" aria-label="Copy Linux install command" data-copy="curl -sSL https://raw.githubusercontent.com/O-Aditya/snippet-snap/main/scripts/install.sh | bash">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+            <pre>curl -sSL https://raw.githubusercontent.com/O-Aditya/snippet-snap/main/scripts/install.sh | bash</pre>
+          </div>
+        </div>
+
+        <div class="install-panel" id="tab-windows">
+          <div class="install-block">
+            <button class="copy-btn" aria-label="Copy Windows install command" data-copy="scoop bucket add snippet-snap https://github.com/O-Aditya/scoop-bucket&#10;scoop install snippet-snap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+            <pre>scoop bucket add snippet-snap https://github.com/O-Aditya/scoop-bucket
+scoop install snippet-snap</pre>
+          </div>
+        </div>
+
+        <p class="install-footnote">
+          Or download a binary directly from <a href="https://github.com/O-Aditya/Snippet-snap/releases" target="_blank" rel="noopener">GitHub Releases →</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══════════ COMMANDS ═══════════ -->
+    <section class="commands-section fade-section" id="commands">
+      <div class="container">
+        <h2 class="section-heading" style="text-align:center;">Six commands. That's the whole tool.</h2>
+
+        <table class="commands-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Description</th>
+              <th class="cmd-example-col">Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cmd-name">snip add</td>
+              <td class="cmd-desc">Save a new snippet interactively</td>
+              <td class="cmd-example cmd-example-col">snip add --name curl-auth --lang bash --tags "api,auth"</td>
+            </tr>
+            <tr>
+              <td class="cmd-name">snip list</td>
+              <td class="cmd-desc">Print all saved snippets as a flat table</td>
+              <td class="cmd-example cmd-example-col">snip list --lang python</td>
+            </tr>
+            <tr>
+              <td class="cmd-name">snip find</td>
+              <td class="cmd-desc"><span class="cmd-star">★</span> Launch fuzzy-search TUI</td>
+              <td class="cmd-example cmd-example-col">snip find</td>
+            </tr>
+            <tr>
+              <td class="cmd-name">snip copy</td>
+              <td class="cmd-desc">Copy to clipboard — fills {{VARS}} interactively</td>
+              <td class="cmd-example cmd-example-col">snip copy 3</td>
+            </tr>
+            <tr>
+              <td class="cmd-name">snip edit</td>
+              <td class="cmd-desc">Open snippet in $EDITOR</td>
+              <td class="cmd-example cmd-example-col">snip edit docker-clean</td>
+            </tr>
+            <tr>
+              <td class="cmd-name">snip rm</td>
+              <td class="cmd-desc">Remove a snippet by ID</td>
+              <td class="cmd-example cmd-example-col">snip rm 5</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span class="footer-logo"><span class="logo-mark">◈</span> snippet-snap</span>
+      <span class="footer-meta">MIT License · Built with Go · Powered by Bubble Tea</span>
+      <a href="https://github.com/O-Aditya/Snippet-snap" target="_blank" rel="noopener" class="footer-github" aria-label="GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </div>
+  </footer>
+
+  <script>
+    /* ═══════════ TYPEWRITER ═══════════ */
+    (function() {
+      const text = 'snip find';
+      const el = document.getElementById('typed-text');
+      const cursor = document.getElementById('type-cursor');
+      const tuiMock = document.getElementById('tui-mock');
+      const statusMsg = document.getElementById('tui-status-msg');
+      let i = 0;
+
+      function type() {
+        if (i < text.length) {
+          el.textContent += text[i];
+          i++;
+          setTimeout(type, 35);
+        } else {
+          cursor.style.display = 'none';
+          setTimeout(function() {
+            tuiMock.classList.add('show');
+            setTimeout(function() {
+              statusMsg.textContent = '✓ Copied docker-clean to clipboard';
+            }, 2000);
+          }, 300);
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(type, 400); });
+      } else {
+        setTimeout(type, 400);
+      }
+    })();
+
+    /* ═══════════ COPY BUTTONS ═══════════ */
+    document.querySelectorAll('.copy-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var text = this.getAttribute('data-copy');
+        if (!text) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text);
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        var svg = this.innerHTML;
+        this.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        this.style.color = 'var(--status-ok)';
+        var self = this;
+        setTimeout(function() {
+          self.innerHTML = svg;
+          self.style.color = '';
+        }, 1500);
+      });
+    });
+
+    /* ═══════════ INSTALL TABS ═══════════ */
+    document.querySelectorAll('.install-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.install-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.install-panel').forEach(function(p) { p.classList.remove('active'); });
+        this.classList.add('active');
+        document.getElementById('tab-' + this.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+
+    /* ═══════════ NAV SCROLL SPY ═══════════ */
+    (function() {
+      var sections = document.querySelectorAll('section[id]');
+      var navLinks = document.querySelectorAll('.nav-links a[data-nav]');
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.id;
+            navLinks.forEach(function(link) {
+              link.classList.toggle('active', link.getAttribute('data-nav') === id);
+            });
+          }
+        });
+      }, { rootMargin: '-40% 0px -50% 0px' });
+
+      sections.forEach(function(sec) {
+        if (sec.id !== 'hero' && sec.id !== 'problem') observer.observe(sec);
+      });
+    })();
+
+    /* ═══════════ FADE IN ═══════════ */
+    (function() {
+      var secs = document.querySelectorAll('.fade-section');
+      var delay = 0;
+      secs.forEach(function(s) {
+        setTimeout(function() { s.classList.add('visible'); }, delay);
+        delay += 80;
+      });
+    })();
+  </script>
+</body>
+</html>
