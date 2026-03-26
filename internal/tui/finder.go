@@ -18,17 +18,18 @@ import (
 
 // Finder is the Bubble Tea model for the `snap find` TUI.
 type Finder struct {
-	allSnippets []models.Snippet
-	filtered    []models.Snippet
-	cursor      int
-	searchInput textinput.Model
-	preview     viewport.Model
-	keys        KeyMap
-	width       int
-	height      int
-	showPreview bool
-	statusMsg   string
-	quitting    bool
+	allSnippets      []models.Snippet
+	filtered         []models.Snippet
+	cursor           int
+	searchInput      textinput.Model
+	preview          viewport.Model
+	keys             KeyMap
+	width            int
+	height           int
+	showPreview      bool
+	statusMsg        string
+	quitting         bool
+	SelectedSnippet  *models.Snippet // set when a snippet with {{VAR}} needs resolution after TUI exits
 }
 
 // NewFinder creates a new Finder model with the given snippets.
@@ -110,26 +111,22 @@ func (f Finder) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			selected := f.filtered[f.cursor]
 
-			// ResolveVars handles both cases:
-			// — no vars: returns content unchanged immediately
-			// — has vars: prompts user on stderr, returns resolved
-			resolved, err := inject.ResolveVars(selected.Content)
-			if err != nil {
-				f.statusMsg = "✗ Aborted"
-				return f, nil
+			// Check if snippet has {{VAR}} placeholders
+			vars := inject.FindVars(selected.Content)
+			if len(vars) > 0 {
+				// Has vars — quit TUI so stdin returns to cooked mode.
+				// The caller (cmd/find.go) handles ResolveVars after exit.
+				f.SelectedSnippet = &selected
+				f.quitting = true
+				return f, tea.Quit
 			}
 
-			if err := clipboard.Copy(resolved); err != nil {
+			// No vars — copy immediately
+			if err := clipboard.Copy(selected.Content); err != nil {
 				f.statusMsg = fmt.Sprintf("✗ Copy failed: %v", err)
 				return f, nil
 			}
-
-			vars := inject.FindVars(selected.Content)
-			if len(vars) > 0 {
-				f.statusMsg = fmt.Sprintf("✓ Copied %s (%d var(s) resolved)", selected.Alias, len(vars))
-			} else {
-				f.statusMsg = "✓ Copied " + selected.Alias
-			}
+			f.statusMsg = "✓ Copied " + selected.Alias
 			return f, nil
 
 		case key.Matches(msg, f.keys.PageUp):
