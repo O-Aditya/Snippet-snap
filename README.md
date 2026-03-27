@@ -19,6 +19,7 @@
 
 You have dozens of one-liners, boilerplate blocks, and CLI commands scattered across Notion, Slack DMs, and random `.txt` files. **Snippet-Snap** puts them all in one place with:
 
+- **Inline TUI editor** — `snip add` opens a full editor with alias, lang, tags, and content fields. No `$EDITOR` needed
 - **Fuzzy search TUI** — find any snippet in milliseconds without leaving the terminal
 - **Syntax highlighting** — preview code in 250+ languages right in terminal (powered by Chroma)
 - **`{{VAR}}` injection** — save templates with placeholders, fill on paste
@@ -76,10 +77,17 @@ go build -o snip .
 ### Save a snippet
 
 ```bash
-# Pipe content in
+# Interactive TUI editor (no flags needed)
+snip add
+```
+
+> Opens a full-screen editor with fields for alias, language, tags, and a multi-line content area. **Tab** to cycle fields, **Ctrl+S** to save, **Esc** to discard.
+
+```bash
+# Or use flags for scripting / piping
 echo 'docker system prune -af --volumes' | snip add --name docker-clean --lang bash --tags "docker,cleanup"
 
-# Or open your editor
+# Or open your $EDITOR
 snip add --name my-snippet --lang python --tags "util"
 ```
 
@@ -172,7 +180,7 @@ snip (CLI)
   ├── cmd/           Cobra commands (add, list, rm, edit, find, copy)
   ├── internal/
   │   ├── db/        SQLite + FTS5 (all SQL in queries.go)
-  │   ├── tui/       Bubble Tea TUI (finder, styles, keymap)
+  │   ├── tui/       Bubble Tea TUI (finder, editor, styles, keymap)
   │   ├── inject/    {{VAR}} placeholder detection + prompt
   │   ├── clipboard/ Cross-platform clipboard (atotto)
   │   └── highlight/ Chroma syntax highlighting
