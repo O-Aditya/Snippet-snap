@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/O-Aditya/snippet-snap/config"
 	"github.com/O-Aditya/snippet-snap/internal/db"
 	"github.com/O-Aditya/snippet-snap/internal/models"
@@ -24,6 +26,15 @@ var addCmd = &cobra.Command{
 		lang, _ := cmd.Flags().GetString("lang")
 		tags, _ := cmd.Flags().GetString("tags")
 
+		// No flags → launch interactive TUI editor
+		if name == "" && lang == "" && tags == "" {
+			// Check if stdin is a terminal (not piped)
+			if stat, _ := os.Stdin.Stat(); stat.Mode()&os.ModeCharDevice != 0 {
+				return runEditorTUI()
+			}
+		}
+
+		// Flag-based flow (for scripting / piping)
 		if name == "" {
 			tui.PrintError("--name is required")
 			return nil
@@ -69,6 +80,26 @@ var addCmd = &cobra.Command{
 			tui.DimStyle.Render(" to use it"))
 		return nil
 	},
+}
+
+func runEditorTUI() error {
+	editor := tui.NewEditorModel(getDB())
+	p := tea.NewProgram(editor, tea.WithAltScreen())
+
+	finalModel, err := p.Run()
+	if err != nil {
+		return fmt.Errorf("editor: %w", err)
+	}
+
+	m := finalModel.(tui.EditorModel)
+	if m.IsSaved() {
+		fmt.Println(tui.RenderConfirmBox(m.SavedAlias, m.SavedID, m.SavedLang, m.SavedTags))
+		fmt.Println()
+		fmt.Println(tui.DimStyle.Render("  Run ") +
+			tui.AccentStyle.Render("snip copy "+strconv.FormatInt(m.SavedID, 10)) +
+			tui.DimStyle.Render(" to use it"))
+	}
+	return nil
 }
 
 func init() {
@@ -132,3 +163,4 @@ func readStdin() (string, error) {
 	}
 	return strings.Join(lines, "\n"), nil
 }
+
